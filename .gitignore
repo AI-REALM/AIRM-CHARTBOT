@@ -1,0 +1,7 @@
+__pycache__
+.env
+*.db
+node_modules
+chart_log.txt
+log.txt
+*.png
