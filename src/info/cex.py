@@ -12,8 +12,8 @@ cmc_client = coinmarketcapapi.CoinMarketCapAPI(api_key)
 def cex_info_symbol_market_pair(symbol):
     try:
         info = cmc_client.cryptocurrency_marketpairs_latest(symbol=symbol).data
-    except:
-        return None
+    except Exception as e:
+        return e.rep.error_message
     market_pair = {}
     for i in info[0]["market_pairs"]:
         if i["market_pair_quote"]["exchange_symbol"] in market_pair:
@@ -37,8 +37,8 @@ def cex_info_symbol_market_pair(symbol):
 def cex_exact_info(symbol, market_pair):
     try:
         info = cmc_client.cryptocurrency_marketpairs_latest(symbol=symbol).data
-    except:
-        return None
+    except Exception as e:
+        return e.rep.error_message
 
     for i in info[0]["market_pairs"]:
         if i["market_id"] == market_pair:
@@ -121,7 +121,5 @@ def get_detailed_info(symbol):
     try:
         test = cmc_client.cryptocurrency_quotes_latest(symbol=symbol)
         return test.data[symbol][0]
-    except:
-        return None
-
-cmc_client.cryptocurrency_quotes_latest(symbol="BTC")
+    except Exception as e:
+        return e.rep.error_message

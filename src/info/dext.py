@@ -65,21 +65,21 @@ def dex_token_address_handle(default_chain, info):
 
 def get_picture(chain, address, file_path, indicators, style, interval):
     if indicators == None or indicators == "":
-        process = subprocess.run(['node', 'node src\\info\\chart\\index.js', chain, address, file_path, 'nu', style, interval], capture_output=True, text=True, encoding='utf-8')
+        process = subprocess.run(['node', 'src\\info\\chart\\index.js', chain, address, file_path, 'nu', style, interval], capture_output=True, text=True, encoding='utf-8')
         if process.returncode == 0:
             return True
         else:
-            return False
+            return f'{chain} {address} {file_path} nu {style} {interval}'
     else:
-        process = subprocess.run(['node', 'node src\\info\\chart\\index.js', chain, address, file_path, indicators, style, interval], capture_output=True, text=True, encoding='utf-8')
+        process = subprocess.run(['node', 'src\\info\\chart\\index.js', chain, address, file_path, indicators, style, interval], capture_output=True, text=True, encoding='utf-8')
         if process.returncode == 0:
             return True
         else:
-            return False
+            return f'{chain} {address} {file_path} {indicators} {style} {interval}'
 
 def get_heatmap(datasource, blocksize, file_path):
-    process = subprocess.run(['node', 'node src\\info\\chart\\heatmap.js', datasource, blocksize, file_path], capture_output=True, text=True, encoding='utf-8')
+    process = subprocess.run(['node', 'src\\info\\chart\\heatmap.js', datasource, blocksize, file_path], capture_output=True, text=True, encoding='utf-8')
     if process.returncode == 0:
         return True
     else:
-        return False
+        return f'{datasource} {blocksize} {file_path}'

@@ -22,8 +22,8 @@ async def admin_notify(context: ContextTypes.DEFAULT_TYPE, admin_chat_id: int, u
     stats_message = (f'⏰ Time: {today_date}\n'
                      f'🧍‍♂ User: {user_chat_id}\n'
                      f'🧍‍♂ Request: {rquest_type}\n'
-                     f'📤 User input: {escape_special_characters(user_input)}\n'
-                     f'🧨 Result: `{result_code}`')
+                     f'📤 User input: {user_input}\n'
+                     f'🧨 Result: {escape_special_characters(result_code)}')
     
     # Send the error message to admin
     await context.bot.send_message(
@@ -33,10 +33,10 @@ async def admin_notify(context: ContextTypes.DEFAULT_TYPE, admin_chat_id: int, u
         )
 
 def log_function(log_type, chat_id, chain_id, chain_address, result):
-    if log_type == "general":
-        log_path = "log.txt"
-    else:
+    if 'chart' in log_type:
         log_path = "chart_log.txt"
+    else:
+        log_path = "log.txt"
     time = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
     print(f'{time} -------- {chat_id} -------- {chain_id} -------- {log_type} -------- {chain_address} -------- {result}')
     with open(log_path, 'a+', encoding='utf-8') as f:

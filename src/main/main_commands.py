@@ -187,6 +187,8 @@ async def dx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
             await dx_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
     else:
+        log_function(log_type="dx_chart", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result="Not found dex pair")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='DX Chart', user_input=f'`{user_input}`', result_code="Not found dex pair")
         await sent_message.edit_text(f'❌ This {"symbol" if len(user_input) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await sent_message.delete()
@@ -196,9 +198,9 @@ async def dx_final_response(message: Update.message, context: ContextTypes.DEFAU
     file_path = "screen.png"
     await message.edit_text(f'Generating chart for `{chain_info.pair_address}` on {chain_info.chain_id} for {interval} period', parse_mode=ParseMode.MARKDOWN)
     picture = get_picture(chain=chain_info.chain_id, address=chain_info.pair_address, file_path=file_path, indicators=indicators, style=style, interval=interval)
-    if picture != 0:
-        log_function(log_type="dx_chart", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="failed")
-        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='dx_chart', user_input=f'{chain_info.chain_id} -- {chain_info.pair_address}', result_code='picture_generation_failed')
+    if picture != True:
+        log_function(log_type="dx_chart", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="Failed in Chart Scrapping")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='DX Chart', user_input=f'`{picture}`', result_code='Failed in Chart Scrapping')
         await message.edit_text(f'❌ This {"symbol" if len(chain_info.pair_address) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -291,6 +293,7 @@ async def dx_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)
         pair_address = text.split("_")[2]
         interval = text.split("_")[3]
         chat_id = message.chat_id
+        user = get_user_by_id(chat_id)
         if not user:
             user = create_user(chat_id)
         await message.delete()
@@ -337,6 +340,8 @@ async def i_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
                 await i_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval)
         else:
+            log_function(log_type="info", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result="Not found info of chain")
+            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Info', user_input=f'`{user_input}`', result_code="Not found info of chain")
             await sent_message.edit_text(f'❌ This {"symbol" if len(user_input) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
             await asyncio.sleep(5)
             await sent_message.delete()
@@ -431,9 +436,9 @@ async def i_cx_final_response(message: Update.message, context: ContextTypes.DEF
     await message.edit_text(f'Generating chart for `{symbol}` on {chain_info["exchange"]["name"]} for {interval} period', parse_mode=ParseMode.MARKDOWN)
     
     detailed_info = get_detailed_info(symbol=symbol)
-    if detailed_info == None:
-        log_function(log_type="i_CX", chat_id=message.chat_id, chain_id=symbol, chain_address=chain_info["exchange"]["name"], result="failed")
-        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='i_cx', user_input=f'{symbol} -- {chain_info["exchange"]["name"]}', result="failed")
+    if type(detailed_info) == str:
+        log_function(log_type="i_CX", chat_id=message.chat_id, chain_id=symbol, chain_address=chain_info["exchange"]["name"], result=f'{detailed_info}')
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Info CX', user_input=f'`{symbol}`, `{chain_info["exchange"]["name"]}`', result=f'{detailed_info}')
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -520,6 +525,8 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
                     # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
                     await i_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval)
             else:
+                log_function(log_type="info_dx", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result="Not found info of DEX chain")
+                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Info DX', user_input=f'`{user_input}`', result_code="Not found info of DEX chain")
                 await sent_message.edit_text(f'❌ This {"symbol" if len(user_input) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
                 await asyncio.sleep(5)
                 await sent_message.delete()
@@ -549,13 +556,15 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
 
             info = cex_info_symbol_market_pair(symbol=user_input)
             
-            if info:
+            if type(info) != str:
                 if len(info) == 1:
                     await i_cx_final_response(message=sent_message, context=context, chain_info=info[0], interval=user.interval, style=user.style)
                 else:
                     # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
                     await i_cx_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
             else:
+                log_function(log_type="info_cx", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result=f"{info}")
+                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Info CX', user_input=f'`{user_input}`', result_code=f'{info}')
                 await sent_message.edit_text(f'❌ This {"symbol" if len(user_input) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
                 await asyncio.sleep(5)
                 await sent_message.delete()
@@ -569,10 +578,12 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
                 user = create_user(chat_id)
             await message.delete()
             info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
-            if info:
+            if type(info) != str:
                 sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
                 await i_cx_final_response(message=sent_message, context=context, chain_info=info, interval=interval, indicators=user.indicators, style=user.style)
             else:
+                log_function(log_type="info_cx", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result=f"{info}")
+                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Info CX', user_input=f'`{user_input}`', result_code=f'{info}')
                 sent_message = await context.bot.send_message(text=f'❌ This symbol {chain_symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
                 await asyncio.sleep(5)
                 await sent_message.delete()
@@ -616,6 +627,8 @@ async def chart_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
                 await chart_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
         else:
+            log_function(log_type="chart", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result="Not found info of chain")
+            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart', user_input=f'`{user_input}`', result_code="Not found info of chain")
             await sent_message.edit_text(f'❌ This {"symbol" if len(user_input) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
             await asyncio.sleep(5)
             await sent_message.delete()
@@ -631,9 +644,9 @@ async def chart_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def chart_final_response(message: Update.message,context: ContextTypes.DEFAULT_TYPE, chain_info:dict, interval:str, indicators:str, style:str) -> None:
     file_path = "screen.png"
     picture = get_picture(chain=chain_info.chain_id, address=chain_info.pair_address, file_path=file_path, indicators=indicators, style=style, interval=interval)
-    if picture != 0:
-        log_function(log_type="chart_dx", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="Picture failed")
-        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='chart_dx',user_input=f'{chain_info.chain_id} -- {chain_info.pair_address}', result_code="Picture failed")
+    if picture != True:
+        log_function(log_type="chart_dx", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="Failed in Chart Scrapping")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Dex', user_input=f'`{picture}`', result_code='Failed in Chart Scrapping')
         await message.edit_text(f'❌ This {"symbol" if len(chain_info.pair_address) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -713,8 +726,8 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
     
     picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
     if picture == False:
-        log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="successful")
-        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='chart_cx',user_input=f'{symbol} -- {exchange}', result_code='Picture_failed')
+        log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="Failed in CEX Chart Generation")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Cex',user_input=f'`{symbol}`, `{exchange}`', result_code='Failed in CEX Chart Generation')
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -794,6 +807,8 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
                     # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
                     await chart_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
             else:
+                log_function(log_type="chart_dx", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result="Not found info of DEX chain")
+                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Dex', user_input=f'`{user_input}`', result_code="Not found info of DEX chain")
                 await sent_message.edit_text(f'❌ This {"symbol" if len(user_input) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
                 await asyncio.sleep(5)
                 await sent_message.delete()
@@ -826,13 +841,15 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
 
             info = cex_info_symbol_market_pair(symbol=user_input)
             
-            if info:
+            if type(info) != str:
                 if len(info) == 1:
                     await chart_cx_final_response(message=sent_message, context=context, chain_info=info[0], interval=user.interval, indicators=user.indicators, style=user.style)
                 else:
                     # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
                     await chart_cx_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
             else:
+                log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result=f'{info}')
+                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Cex', user_input=f'`{user_input}`', result_code=f'{info}')
                 await sent_message.edit_text(f'❌ This {"symbol" if len(user_input) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
                 await asyncio.sleep(5)
                 await sent_message.delete()
@@ -847,10 +864,12 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
                 user = create_user(chat_id)
             await message.delete()
             info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
-            if info:
+            if type(info) != str:
                 sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
                 await chart_cx_final_response(message=sent_message, context=context, chain_info=info, interval=interval, indicators=user.indicators, style=user.style)
             else:
+                log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result=f'{info}')
+                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Cex', user_input=f'`{user_input}`', result_code=f'{info}')
                 sent_message = await context.bot.send_message(text=f'❌ This symbol {chain_symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
                 await asyncio.sleep(5)
                 await sent_message.delete()
@@ -899,9 +918,9 @@ async def heatmap_callback_handle(update: Update, context: ContextTypes.DEFAULT_
             await message.edit_text(f'Generating heatmap by {candidate_blocksize[blocksize]} on {candidate_datasource[datasource]}')
             heatmap_path = "heatmap.png"
             heatmap = get_heatmap(datasource=datasource, blocksize=blocksize, file_path=heatmap_path)
-            if heatmap != 0:
-                log_function(log_type="heatmap", chat_id=message.chat_id, chain_id=candidate_datasource[datasource], chain_address=candidate_blocksize[blocksize], result="picture_failed")
-                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='heatmap', user_input=f'{candidate_datasource[datasource]} -- {candidate_blocksize[blocksize]}', result_code='picture_failed')
+            if heatmap != True:
+                log_function(log_type="heatmap", chat_id=message.chat_id, chain_id=candidate_datasource[datasource], chain_address=candidate_blocksize[blocksize], result="Failed in heatmap generation")
+                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Heatmap', user_input=f'`{heatmap}`', result_code='Failed in heatmap generation')
                 await message.edit_text(f'❌ Failed in heatmap by {candidate_blocksize[blocksize]} on {candidate_datasource[datasource]}. Please contact me directly @fieryfox617')
                 await asyncio.sleep(5)
                 await message.delete()
@@ -948,13 +967,15 @@ async def cx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     info = cex_info_symbol_market_pair(symbol=user_input)
     
-    if info:
+    if type(info) != str:
         if len(info) == 1:
             await cx_final_response(message=sent_message, context=context, chain_info=info[0], interval=user.interval, style=user.style)
         else:
             # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
             await cx_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
     else:
+        log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result=f"{info}")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{user_input}`', result_code=f"{info}")        
         await sent_message.edit_text(f'❌ This {"symbol" if len(user_input) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await sent_message.delete()
@@ -988,9 +1009,13 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
     
     detailed_info = get_detailed_info(symbol=symbol)
     picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
-    if picture == False or detailed_info == None:
-        log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="picture_failed")
-        admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='cx_chart', user_input=f'{symbol} -- {exchange}', result_code="picture_failed")
+    if picture == False or type(detailed_info) == str:
+        if type(detailed_info) == str:
+            log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result=f'{detailed_info}')
+            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{symbol}`, `{exchange}`', result_code=f'{detailed_info}')
+        else:
+            log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="Failed in CEX chart Generation")
+            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{symbol}`, `{exchange}`', result_code="Failed in CEX chart Generation")
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -1072,10 +1097,12 @@ async def cx_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)
             user = create_user(chat_id)
         await message.delete()
         info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
-        if info:
+        if type(info) != str:
             sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
             await cx_final_response(message=sent_message, context=context, chain_info=info, interval=interval, indicators=user.indicators, style=user.style)
         else:
+            log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=user.chain, chain_address=chain_symbol, result=f'{info}')
+            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{chain_symbol}`, {market_pair}', result_code=f'{info}')        
             sent_message = await context.bot.send_message(text=f'❌ This symbol {chain_symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
             await asyncio.sleep(5)
             await sent_message.delete()

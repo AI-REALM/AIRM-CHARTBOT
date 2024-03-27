@@ -7,3 +7,4 @@ selenium==4.17.2
 
 python-coinmarketcap
 mplfinance
+dexscreener
