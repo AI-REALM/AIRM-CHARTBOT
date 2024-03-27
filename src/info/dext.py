@@ -1,6 +1,7 @@
 from dexscreener import DexscreenerClient
 import os
 from datetime import datetime
+import subprocess
 
 client = DexscreenerClient()
 
@@ -64,22 +65,21 @@ def dex_token_address_handle(default_chain, info):
 
 def get_picture(chain, address, file_path, indicators, style, interval):
     if indicators == None or indicators == "":
-        exec_result = os.system(f'node src\\info\\chart\\index.js {chain} {address} {file_path} nu {style} {interval}')
-        return exec_result
+        process = subprocess.run(['node', 'node src\\info\\chart\\index.js', chain, address, file_path, 'nu', style, interval], capture_output=True, text=True, encoding='utf-8')
+        if process.returncode == 0:
+            return True
+        else:
+            return False
     else:
-        exec_result = os.system(f'node src\\info\\chart\\index.js {chain} {address} {file_path} {indicators} {style} {interval}')
-        return exec_result
+        process = subprocess.run(['node', 'node src\\info\\chart\\index.js', chain, address, file_path, indicators, style, interval], capture_output=True, text=True, encoding='utf-8')
+        if process.returncode == 0:
+            return True
+        else:
+            return False
 
 def get_heatmap(datasource, blocksize, file_path):
-    exec_result = os.system(f'node src\\info\\chart\\heatmap.js {datasource} {blocksize} {file_path}')
-    return exec_result
-
-def log_function(log_type, chain_id, chain_address):
-    if log_type == "general":
-        log_path = "log.txt"
+    process = subprocess.run(['node', 'node src\\info\\chart\\heatmap.js', datasource, blocksize, file_path], capture_output=True, text=True, encoding='utf-8')
+    if process.returncode == 0:
+        return True
     else:
-        log_path = "chart_log.txt"
-    time = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
-    with open(log_path, 'a+', encoding='utf-8') as f:
-        f.write(f'{time}--------{log_type}--------{chain_id}--------{chain_address}\n')
-        f.close()
+        return False

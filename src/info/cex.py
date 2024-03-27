@@ -123,3 +123,5 @@ def get_detailed_info(symbol):
         return test.data[symbol][0]
     except:
         return None
+
+cmc_client.cryptocurrency_quotes_latest(symbol="BTC")

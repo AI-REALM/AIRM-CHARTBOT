@@ -1,12 +1,17 @@
 # Import required classes from the library
-import json, asyncio
+import json, asyncio, os
 from telegram.ext import ContextTypes
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from datetime import datetime, timedelta
 from telegram.constants import ParseMode
-from ..model.crud import get_user_by_id
-from ..info.dext import dx_get_info, get_picture, get_heatmap, log_function
+from ..model.crud import get_user_by_id, create_user
+from ..info.dext import dx_get_info, get_picture, get_heatmap
+from .admin_commands import admin_notify, log_function
 from ..info.cex import cex_exact_info, cex_info_symbol_market_pair, cex_historical_info, get_detailed_info
+from dotenv import load_dotenv
+load_dotenv(dotenv_path='.env')
+
+admin = int(os.getenv('ADMIN'))
 
 chains_default_name = {
     'ethereum':'Ethereum',
@@ -168,6 +173,8 @@ async def dx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     chat_id = message.chat_id
     user = get_user_by_id(chat_id)
+    if not user:
+        user = create_user(chat_id)
 
     sent_message = await message.reply_text(f'Searching info of `{user_input}` on {user.chain} for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
@@ -190,6 +197,8 @@ async def dx_final_response(message: Update.message, context: ContextTypes.DEFAU
     await message.edit_text(f'Generating chart for `{chain_info.pair_address}` on {chain_info.chain_id} for {interval} period', parse_mode=ParseMode.MARKDOWN)
     picture = get_picture(chain=chain_info.chain_id, address=chain_info.pair_address, file_path=file_path, indicators=indicators, style=style, interval=interval)
     if picture != 0:
+        log_function(log_type="dx_chart", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="failed")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='dx_chart', user_input=f'{chain_info.chain_id} -- {chain_info.pair_address}', result_code='picture_generation_failed')
         await message.edit_text(f'❌ This {"symbol" if len(chain_info.pair_address) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -237,7 +246,7 @@ async def dx_final_response(message: Update.message, context: ContextTypes.DEFAU
             parse_mode=ParseMode.HTML,
             reply_markup=reply_markup
         )
-        log_function("chart", chain_info.chain_id, chain_info.pair_address)
+        log_function(log_type="dx_chart", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="successful")
 
 async def dx_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:
     platforms = {}
@@ -282,7 +291,8 @@ async def dx_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)
         pair_address = text.split("_")[2]
         interval = text.split("_")[3]
         chat_id = message.chat_id
-        user = get_user_by_id(chat_id)
+        if not user:
+            user = create_user(chat_id)
         await message.delete()
         sent_message = await context.bot.send_message(text= f'Searching info of `{pair_address}` on {chain_id} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
         chain_name, info = dx_get_info(default_chain=chain_id, user_input=pair_address)
@@ -314,6 +324,8 @@ async def i_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if len(user_input) > 20:        
         chat_id = message.chat_id
         user = get_user_by_id(chat_id)
+        if not user:
+            user = create_user(chat_id)
 
         sent_message = await message.reply_text(f'Searching info of `{user_input}` on {user.chain} for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
@@ -378,7 +390,7 @@ async def i_final_response(message: Update.message, context: ContextTypes.DEFAUL
         reply_markup=reply_markup,
         disable_web_page_preview=True
     )
-    log_function("general", chain_info.chain_id, chain_info.pair_address)
+    log_function(log_type="i_DX", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="successful")
 
 async def i_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval) ->None:
     platforms = {}
@@ -420,6 +432,8 @@ async def i_cx_final_response(message: Update.message, context: ContextTypes.DEF
     
     detailed_info = get_detailed_info(symbol=symbol)
     if detailed_info == None:
+        log_function(log_type="i_CX", chat_id=message.chat_id, chain_id=symbol, chain_address=chain_info["exchange"]["name"], result="failed")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='i_cx', user_input=f'{symbol} -- {chain_info["exchange"]["name"]}', result="failed")
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -444,7 +458,7 @@ async def i_cx_final_response(message: Update.message, context: ContextTypes.DEF
         reply_markup=reply_markup,
         disable_web_page_preview=True
     )
-    log_function("general", symbol, chain_info["exchange"]["name"])
+    log_function(log_type="i_CX", chat_id=message.chat_id, chain_id=symbol, chain_address=chain_info["exchange"]["name"], result="successful")
 
 async def i_cx_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:
     exchanges = {}
@@ -493,6 +507,8 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
             user_input = text.split("_")[2]        
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
+            if not user:
+                user = create_user(chat_id)
             await message.delete()
             sent_message = await message.reply_text(f'Searching info of `{user_input}` on {user.chain} for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
@@ -526,6 +542,8 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
 
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
+            if not user:
+                user = create_user(chat_id)
             await message.delete()
             sent_message = await message.reply_text(f'Searching info of `{user_input}` for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
@@ -547,6 +565,8 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
             interval = text.split("_")[4]
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
+            if not user:
+                user = create_user(chat_id)
             await message.delete()
             info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
             if info:
@@ -583,6 +603,8 @@ async def chart_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if len(user_input) > 20:
         chat_id = message.chat_id
         user = get_user_by_id(chat_id)
+        if not user:
+            user = create_user(chat_id)
 
         sent_message = await message.reply_text(f'Generating chart for `{user_input}` on {user.chain} for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
@@ -610,6 +632,8 @@ async def chart_final_response(message: Update.message,context: ContextTypes.DEF
     file_path = "screen.png"
     picture = get_picture(chain=chain_info.chain_id, address=chain_info.pair_address, file_path=file_path, indicators=indicators, style=style, interval=interval)
     if picture != 0:
+        log_function(log_type="chart_dx", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="Picture failed")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='chart_dx',user_input=f'{chain_info.chain_id} -- {chain_info.pair_address}', result_code="Picture failed")
         await message.edit_text(f'❌ This {"symbol" if len(chain_info.pair_address) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -626,7 +650,7 @@ async def chart_final_response(message: Update.message,context: ContextTypes.DEF
             chat_id=message.chat_id,
             reply_markup=reply_markup
         )
-        log_function("chart", chain_info.chain_id, chain_info.pair_address)
+        log_function(log_type="chart_dx", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="successful")
 
 async def chart_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:
     platforms = {}
@@ -689,6 +713,8 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
     
     picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
     if picture == False:
+        log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="successful")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='chart_cx',user_input=f'{symbol} -- {exchange}', result_code='Picture_failed')
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -705,7 +731,7 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
             chat_id=message.chat_id,
             reply_markup=reply_markup
         )
-        log_function("chart", symbol, exchange)
+        log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="successful")
 
 async def chart_cx_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:
     exchanges = {}
@@ -755,6 +781,8 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
 
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
+            if not user:
+                user = create_user(chat_id)
             await message.delete()
             sent_message = await message.reply_text(f'Generating chart for `{user_input}` on {user.chain} for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
@@ -776,6 +804,8 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
             interval = text.split("_")[4]
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
+            if not user:
+                user = create_user(chat_id)
             await message.delete()
             sent_message = await context.bot.send_message(text=f'Generating chart for token-pair(`{pair_address}`) on {chain_id} for {interval} period',chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
             chain_name, info = dx_get_info(default_chain=chain_id, user_input=pair_address)
@@ -789,6 +819,8 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
 
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
+            if not user:
+                user = create_user(chat_id)
             await message.delete()
             sent_message = await message.reply_text(f'Searching info of `{user_input}` for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
@@ -811,6 +843,8 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
             interval = text.split("_")[4]
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
+            if not user:
+                user = create_user(chat_id)
             await message.delete()
             info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
             if info:
@@ -866,6 +900,8 @@ async def heatmap_callback_handle(update: Update, context: ContextTypes.DEFAULT_
             heatmap_path = "heatmap.png"
             heatmap = get_heatmap(datasource=datasource, blocksize=blocksize, file_path=heatmap_path)
             if heatmap != 0:
+                log_function(log_type="heatmap", chat_id=message.chat_id, chain_id=candidate_datasource[datasource], chain_address=candidate_blocksize[blocksize], result="picture_failed")
+                await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='heatmap', user_input=f'{candidate_datasource[datasource]} -- {candidate_blocksize[blocksize]}', result_code='picture_failed')
                 await message.edit_text(f'❌ Failed in heatmap by {candidate_blocksize[blocksize]} on {candidate_datasource[datasource]}. Please contact me directly @fieryfox617')
                 await asyncio.sleep(5)
                 await message.delete()
@@ -880,7 +916,7 @@ async def heatmap_callback_handle(update: Update, context: ContextTypes.DEFAULT_
                     caption=f'🕋 Datasource: {candidate_datasource[datasource]}\n📐 Blocksize: {candidate_blocksize[blocksize]}',
                     reply_markup=reply_markup
                 )
-                log_function("heatmap", candidate_datasource[datasource], candidate_blocksize[blocksize])
+                log_function(log_type="heatmap", chat_id=message.chat_id, chain_id=candidate_datasource[datasource], chain_address=candidate_blocksize[blocksize], result="successful")
 
 # /cx handling functions
 async def cx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -905,6 +941,8 @@ async def cx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     chat_id = message.chat_id
     user = get_user_by_id(chat_id)
+    if not user:
+        user = create_user(chat_id)
 
     sent_message = await message.reply_text(f'Searching info of `{user_input}` for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
@@ -951,6 +989,8 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
     detailed_info = get_detailed_info(symbol=symbol)
     picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
     if picture == False or detailed_info == None:
+        log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="picture_failed")
+        admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='cx_chart', user_input=f'{symbol} -- {exchange}', result_code="picture_failed")
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -979,7 +1019,7 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
             parse_mode=ParseMode.HTML,
             reply_markup=reply_markup
         )
-        log_function("chart", symbol, exchange)
+        log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="successful")
 
 async def cx_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:
     exchanges = {}
@@ -1028,6 +1068,8 @@ async def cx_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)
         interval = text.split("_")[3]
         chat_id = message.chat_id
         user = get_user_by_id(chat_id)
+        if not user:
+            user = create_user(chat_id)
         await message.delete()
         info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
         if info:
