@@ -197,14 +197,16 @@ async def dx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def dx_final_response(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, interval:str, indicators:str, style:str) -> None:
     file_path = "screen.png"
     await message.edit_text(f'Generating chart for `{chain_info.pair_address}` on {chain_info.chain_id} for {interval} period', parse_mode=ParseMode.MARKDOWN)
-    picture = get_picture(chain=chain_info.chain_id, address=chain_info.pair_address, file_path=file_path, indicators=indicators, style=style, interval=interval)
-    if picture != True:
+    runing, picture = get_picture(chain=chain_info.chain_id, address=chain_info.pair_address, file_path=file_path, indicators=indicators, style=style, interval=interval)
+    if runing == False:
         log_function(log_type="dx_chart", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="Failed in Chart Scrapping")
         await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='DX Chart', user_input=f'`{picture}`', result_code='Failed in Chart Scrapping')
         await message.edit_text(f'❌ This {"symbol" if len(chain_info.pair_address) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
         return None
+    # chart_url = picture.split("/")[-2]
+    print(picture)
     chain = chains_default_name[chain_info.chain_id]
     pair = f'<a href=\'{chain_info.url}\'>{chain_info.base_token.name} / {chain_info.quote_token.name}</a>'
     price = chain_info.price_usd if chain_info.price_usd else None
@@ -241,7 +243,7 @@ async def dx_final_response(message: Update.message, context: ContextTypes.DEFAU
     reply_markup = InlineKeyboardMarkup([keyboard])
     await message.delete()
     with open(file_path, 'rb') as f:
-        await context.bot.send_photo(
+        final = await context.bot.send_photo(
             photo = f,
             chat_id=message.chat_id,
             caption=f'📌 Chain: {chain} ({interval})\n\n🏦 DEX Platform: {chain_info.dex_id}\n\n💸 Pair: {pair}\n\n💰 Price USD: {chain_info.price_usd if chain_info.price_usd else '-'} {f'({price_chain}%)' if chain_info.price_usd else ''}\n🌊 Volume: {'--' if volume == 0 else f'${volume}'}\n💦 Liquidity: Total: ${format_number(liquidity.usd)}\n',
@@ -643,8 +645,8 @@ async def chart_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def chart_final_response(message: Update.message,context: ContextTypes.DEFAULT_TYPE, chain_info:dict, interval:str, indicators:str, style:str) -> None:
     file_path = "screen.png"
-    picture = get_picture(chain=chain_info.chain_id, address=chain_info.pair_address, file_path=file_path, indicators=indicators, style=style, interval=interval)
-    if picture != True:
+    running, picture = get_picture(chain=chain_info.chain_id, address=chain_info.pair_address, file_path=file_path, indicators=indicators, style=style, interval=interval)
+    if running == False:
         log_function(log_type="chart_dx", chat_id=message.chat_id, chain_id=chain_info.chain_id, chain_address=chain_info.pair_address, result="Failed in Chart Scrapping")
         await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Dex', user_input=f'`{picture}`', result_code='Failed in Chart Scrapping')
         await message.edit_text(f'❌ This {"symbol" if len(chain_info.pair_address) > 20 else "address"} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)

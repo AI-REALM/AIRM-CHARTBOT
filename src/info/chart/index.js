@@ -46,7 +46,6 @@ function sleep(ms) {
   else {
     indicato = indicator.split(",")
   }
-  console.log(indicato)
   // await sleep(1000);
   // exec("killall chrome");
   // await sleep(1000);
@@ -60,7 +59,7 @@ function sleep(ms) {
   const browser = await puppeteer.connect({ browserURL });
   const page = await browser.newPage()
 
-  await page.setViewport({ width:1600, height: 900});
+  await page.setViewport({ width:2300, height: 1400});
   
   await page.goto(
     `https://dexscreener.com/${chain}/${address}`,
@@ -68,17 +67,24 @@ function sleep(ms) {
   );
   // await sleep(5000);
 
-  console.log("find frame")
   // open-indicators-dialog
   try{
     await page.waitForSelector('iframe[title="Financial Chart"]');
     let frameHandle;
     let frame;
+    let full;
     frameHandle = await page.$('iframe[title="Financial Chart"]');
     frame = await frameHandle.contentFrame()
-    await frame.waitForSelector('div.group-MBOVGQRI div.wrap-n5bmFxyX span[tabindex="-1"]');
-    await frame.$$eval('div.group-MBOVGQRI div.wrap-n5bmFxyX span[tabindex="-1"]', (el) => {el[3].click()});
-    await sleep(1000)
+    // try{
+    //   await frame.waitForSelector('div.group-MBOVGQRI div.wrap-n5bmFxyX span[tabindex="-1"]');
+    //   await frame.$$eval('div.group-MBOVGQRI div.wrap-n5bmFxyX span[tabindex="-1"]', (el) => {el[3].click()});
+    //   await sleep(2000)
+    //   full = true
+    // } catch{
+    //   full = false
+
+    // } 
+    full = false
     // await page.waitForSelector('iframe[name="tradingview_d6e53"]');
     // let frameHandle_full_chart;
     // let frame_full_chart;
@@ -102,7 +108,6 @@ function sleep(ms) {
     for (let index = 0; index < indicato.length; index++) {
       let element = indicato[index];
       let title = page_indcators[element]
-      console.log(title)
       await frame.waitForSelector(`div[data-title="${title}"]`, {timeout:1000});
       await frame.$eval(`div[data-title="${title}"]`, el => el.click());
     }
@@ -120,9 +125,30 @@ function sleep(ms) {
     await frame.$$eval(`button.button-S_1OCXUK.button-neROVfUe.button-GwQQdU8S.apply-common-tooltip.isInteractive-GwQQdU8S.isGrouped-GwQQdU8S.accessible-GwQQdU8S[aria-label="${default_interval[user_interval]}"]`, (el) => {el[0].click()});
     // Take a screenshot of the specified element
     await sleep(2000)
-    await page.screenshot({ path: file_path}); 
+    if(full === false){
+      const element = await frame.$('div.layout__area--center.no-border-bottom-left-radius.no-border-bottom-right-radius.no-border-top-right-radius');
+      const box = await element.boundingBox();
+
+      // Take a screenshot of the specified element
+      await page.screenshot({ path: file_path, clip: box });
+    } else {
+      await page.screenshot({ path: file_path}); 
+    }
+    await frame.$('button.button-merBkM5y.apply-common-tooltip.accessible-merBkM5y[aria-label="Take a snapshot"]')
+    await frame.$eval('button.button-merBkM5y.apply-common-tooltip.accessible-merBkM5y[aria-label="Take a snapshot"]', (el) => {el.click()});
+    await frame.$('div.accessible-NQERJsv9.item-jFqVJoPk.item-o5a0MQMm.withIcon-jFqVJoPk.withIcon-o5a0MQMm[data-name="copy-link-to-the-chart-image"]')
+    await frame.$eval('div.accessible-NQERJsv9.item-jFqVJoPk.item-o5a0MQMm.withIcon-jFqVJoPk.withIcon-o5a0MQMm[data-name="copy-link-to-the-chart-image"]', (el) => {el.click()});
+    // await page.close();
+    // await browser.disconnect();
+    await sleep(3000)
+    // Read the copied string from the clipboard
+    const copiedValue = await page.evaluate(() => navigator.clipboard.readText());
+    let returnValue = {
+      copy_url: copiedValue,
+    };
     await page.close();
     await browser.disconnect();
+    console.log(JSON.stringify(returnValue));
     await process.exit(0);
   }catch{
     await page.close()
