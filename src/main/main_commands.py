@@ -7,7 +7,7 @@ from telegram.constants import ParseMode
 from ..model.crud import get_user_by_id, create_user
 from ..info.dext import dx_get_info, get_picture, get_heatmap
 from .admin_commands import admin_notify, log_function
-from ..info.cex import cex_exact_info, cex_info_symbol_market_pair, cex_historical_info, get_detailed_info
+from ..info.cex import cex_exact_info, cex_info_symbol_market_pair, cex_historical_info, get_detailed_info, get_picture_cex
 from ..info.ta import ta_response
 from dotenv import load_dotenv
 load_dotenv(dotenv_path='.env')
@@ -207,7 +207,6 @@ async def dx_final_response(message: Update.message, context: ContextTypes.DEFAU
         await message.delete()
         return None
     # chart_url = picture.split("/")[-2]
-    print(picture)
     chain = chains_default_name[chain_info.chain_id]
     pair = f'<a href=\'{chain_info.url}\'>{chain_info.base_token.name} / {chain_info.quote_token.name}</a>'
     price = chain_info.price_usd if chain_info.price_usd else None
@@ -679,6 +678,8 @@ async def chart_final_response(message: Update.message,context: ContextTypes.DEF
         return None
     
     keyboard = []
+    if picture:
+        keyboard.append(InlineKeyboardButton(text="👁 TA", callback_data=f'ta_{picture}'))
     keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'chart_DX_{chain_info.chain_id}_{chain_info.pair_address}_{interval}'))
     keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_DX_{chain_info.chain_id}_{chain_info.pair_address}_{interval}'))
     reply_markup = InlineKeyboardMarkup([keyboard])
@@ -735,23 +736,24 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
     period = ""
     if interval == '5m':
         start = now - timedelta(minutes=2500)
-        user_interval = "hourly"
+        user_interval = 5
         period = "hourly"
     elif interval == '1h':
         start = now - timedelta(hours=500)
-        user_interval = "hourly"
+        user_interval = 60
         period = "hourly"
     elif interval == '6h':
         start = now - timedelta(days=90)
-        user_interval = "6h"
+        user_interval = 360
         period = "hourly"
     elif interval == '1D':
         start = now - timedelta(days=90)
-        user_interval = "daily"
+        user_interval = 1440
         period = "daily"
     
     picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
-    if picture == False:
+    running, picture = get_picture_cex(exchange=exchange, chain=symbol, file_path=file_path, style=style, indicators=indicators, interval=user_interval)
+    if running == False:
         log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="Failed in CEX Chart Generation")
         await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Cex',user_input=f'`{symbol}`, `{exchange}`', result_code='Failed in CEX Chart Generation')
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
@@ -760,6 +762,8 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
         return None
 
     keyboard = []
+    if picture:
+        keyboard.append(InlineKeyboardButton(text="👁 TA", callback_data=f'ta_{picture}'))
     keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'chart_CX_{symbol}_{market_id}_{interval}'))
     keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_CX_{symbol}_{market_id}_{interval}'))
     reply_markup = InlineKeyboardMarkup([keyboard])
@@ -1018,24 +1022,25 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
     period = ""
     if interval == '5m':
         start = now - timedelta(minutes=2500)
-        user_interval = "hourly"
+        user_interval = 5
         period = "hourly"
     elif interval == '1h':
         start = now - timedelta(hours=500)
-        user_interval = "hourly"
+        user_interval = 60
         period = "hourly"
     elif interval == '6h':
         start = now - timedelta(days=90)
-        user_interval = "6h"
+        user_interval = 360
         period = "hourly"
     elif interval == '1D':
         start = now - timedelta(days=90)
-        user_interval = "daily"
+        user_interval = 1440
         period = "daily"
-    
+    exchange = i["exchange"]["slug"]
+    running, picture = get_picture_cex(exchange=exchange, chain=symbol, file_path=file_path, style=style, indicators=indicators, interval=user_interval)
     detailed_info = get_detailed_info(symbol=symbol)
-    picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
-    if picture == False or type(detailed_info) == str:
+    # picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
+    if running == False or type(detailed_info) == str:
         if type(detailed_info) == str:
             log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result=f'{detailed_info}')
             await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{symbol}`, `{exchange}`', result_code=f'{detailed_info}')
@@ -1052,15 +1057,18 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
     
     market_cap = round(detailed_info["quote"]["USD"]["market_cap"],3)
 
-    keyboard = []
+    interval_keyboard = []
     times = ['5m','1h','6h','1D']
     for i in times:
         if i == interval:
-            keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'cx_{symbol}_{market_id}_{i}'))
+            interval_keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'cx_{symbol}_{market_id}_{i}'))
         else:
-            keyboard.append(InlineKeyboardButton(text=i, callback_data=f'cx_{symbol}_{market_id}_{i}'))
-    keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_CX_{symbol}_{market_id}_{i}'))
-    reply_markup = InlineKeyboardMarkup([keyboard])
+            interval_keyboard.append(InlineKeyboardButton(text=i, callback_data=f'cx_{symbol}_{market_id}_{i}'))
+    ta_i_keyboard = []
+    if picture:
+        ta_i_keyboard.append(InlineKeyboardButton(text="👁 TA", callback_data=f'ta_{picture}'))
+    ta_i_keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_CX_{symbol}_{market_id}_{i}'))
+    reply_markup = InlineKeyboardMarkup([interval_keyboard, ta_i_keyboard])
     await message.delete()
     with open(file_path, 'rb') as f:
         await context.bot.send_photo(

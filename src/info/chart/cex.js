@@ -77,6 +77,10 @@ function sleep(ms) {
     }
     await page.waitForSelector('div[data-name="indicators-dialog"] button[data-name="close"]', {timeout:1000});
     await page.$eval('div[data-name="indicators-dialog"] button[data-name="close"]', el => el.click());
+    await page.waitForSelector('div[id="header-toolbar-chart-styles"] button', {timeout:1000});
+    await page.$eval('div[id="header-toolbar-chart-styles"] button', (el) => {el.click()});
+    await page.waitForSelector(`div[data-name="menu-inner"] div[data-value="${user_style}"]`, {timeout:1000});
+    await page.$eval(`div[data-name="menu-inner"] div[data-value="${user_style}"]`, (el) => {el.click()});
     
     await sleep(2000)
     const element = await page.$('div.layout__area--center');
@@ -90,7 +94,7 @@ function sleep(ms) {
     await page.$eval('div.accessible-NQERJsv9.item-jFqVJoPk.item-o5a0MQMm.withIcon-jFqVJoPk.withIcon-o5a0MQMm[data-name="copy-link-to-the-chart-image"]', (el) => {el.click()});
     // await page.close();
     // await browser.disconnect();
-    await frame.waitForSelector('div.container-TCHLKPuQ.container-success-TCHLKPuQ.notice-Q8oybhDM', {timeout:6000});
+    await page.waitForSelector('div.container-TCHLKPuQ.container-success-TCHLKPuQ.notice-Q8oybhDM', {timeout:6000});
     // Read the copied string from the clipboard
     const copiedValue = await page.evaluate(() => navigator.clipboard.readText());
     let returnValue = {

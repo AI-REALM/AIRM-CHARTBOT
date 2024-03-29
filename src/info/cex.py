@@ -1,5 +1,5 @@
 import coinmarketcapapi
-import os, json, datetime
+import os, json, datetime,subprocess
 import pandas as pd
 import mplfinance as mpf
 from dotenv import load_dotenv
@@ -123,3 +123,29 @@ def get_detailed_info(symbol):
         return test.data[symbol][0]
     except Exception as e:
         return e.rep.error_message
+
+def get_picture_cex(chain, exchange, file_path, indicators, style, interval):
+    if indicators == None or indicators == "":
+        process = subprocess.run(['node', 'src\\info\\chart\\cex.js', exchange, f'{chain}usdt', file_path, 'nu', style, interval], capture_output=True, text=True, encoding='utf-8')
+        if process.returncode == 0:
+            output = process.stdout
+            data = json.loads(output)
+            try:
+                chart_url = data["copy_url"].split("/")[-2]
+            except:
+                chart_url = ''
+            return True, chart_url
+        else:
+            return False, f'{exchange}, {chain}usdt {file_path} nu {style} {interval}'
+    else:
+        process = subprocess.run(['node', 'src\\info\\chart\\cex.js', exchange, f'{chain}usdt', file_path, indicators, style, interval], capture_output=True, text=True, encoding='utf-8')
+        if process.returncode == 0:
+            output = process.stdout
+            data = json.loads(output)
+            try:
+                chart_url = data["copy_url"].split("/")[-2]
+            except:
+                chart_url = ''
+            return True, chart_url
+        else:
+            return False, f'{exchange}, {chain}usdt {file_path} {indicators} {style} {interval}'
