@@ -8,6 +8,7 @@ from ..model.crud import get_user_by_id, create_user
 from ..info.dext import dx_get_info, get_picture, get_heatmap
 from .admin_commands import admin_notify, log_function
 from ..info.cex import cex_exact_info, cex_info_symbol_market_pair, cex_historical_info, get_detailed_info
+from ..info.ta import ta_response
 from dotenv import load_dotenv
 load_dotenv(dotenv_path='.env')
 
@@ -212,7 +213,7 @@ async def dx_final_response(message: Update.message, context: ContextTypes.DEFAU
     price = chain_info.price_usd if chain_info.price_usd else None
     create_date = chain_info.pair_created_at
     if create_date:
-        created_date = f'🗓️ Created date: {create_date.strftime(format='%Y-%m-%d')}\n'
+        created_date = f'🗓️ Created date: {create_date.strftime(format="%Y-%m-%d")}\n'
     else:
         created_date = None
     if interval == '5m':
@@ -232,21 +233,32 @@ async def dx_final_response(message: Update.message, context: ContextTypes.DEFAU
         pair_count = chain_info.transactions.h24
         volume = chain_info.volume.h24
     liquidity = chain_info.liquidity
-    keyboard = []
+    interval_keyboard = []
     times = ['5m','1h','6h','1D']
     for i in times:
         if i == interval:
-            keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'dx_{chain_info.chain_id}_{chain_info.pair_address}_{i}'))
+            interval_keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'dx_{chain_info.chain_id}_{chain_info.pair_address}_{i}'))
         else:
-            keyboard.append(InlineKeyboardButton(text=i, callback_data=f'dx_{chain_info.chain_id}_{chain_info.pair_address}_{i}'))
-    keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_DX_{chain_info.chain_id}_{chain_info.pair_address}_{interval}'))
-    reply_markup = InlineKeyboardMarkup([keyboard])
+            interval_keyboard.append(InlineKeyboardButton(text=i, callback_data=f'dx_{chain_info.chain_id}_{chain_info.pair_address}_{i}'))
+    ta_i_keyboard = []
+    if picture:
+        ta_i_keyboard.append(InlineKeyboardButton(text="👁 TA", callback_data=f'ta_{picture}'))
+    ta_i_keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_DX_{chain_info.chain_id}_{chain_info.pair_address}_{interval}'))
+    reply_markup = InlineKeyboardMarkup([interval_keyboard, ta_i_keyboard])
     await message.delete()
     with open(file_path, 'rb') as f:
         final = await context.bot.send_photo(
             photo = f,
             chat_id=message.chat_id,
-            caption=f'📌 Chain: {chain} ({interval})\n\n🏦 DEX Platform: {chain_info.dex_id}\n\n💸 Pair: {pair}\n\n💰 Price USD: {chain_info.price_usd if chain_info.price_usd else '-'} {f'({price_chain}%)' if chain_info.price_usd else ''}\n🌊 Volume: {'--' if volume == 0 else f'${volume}'}\n💦 Liquidity: Total: ${format_number(liquidity.usd)}\n',
+            caption=(
+                f'📌 Chain: {chain} ({interval})\n\n'
+                f'🏦 DEX Platform: {chain_info.dex_id}\n\n'
+                f'💸 Pair: {pair}\n\n'
+                f'💰 Price USD: {chain_info.price_usd if chain_info.price_usd is not None else "-"}'
+                f"{f' ({price_chain}% Change)' if price_chain is not None else ''}\n"
+                f'🌊 Volume: {f"${volume}" if volume > 0 else "--"}\n'
+                f'💦 Liquidity: Total: ${format_number(liquidity.usd)}\n'
+            ),
             parse_mode=ParseMode.HTML,
             reply_markup=reply_markup
         )
@@ -361,7 +373,7 @@ async def i_final_response(message: Update.message, context: ContextTypes.DEFAUL
     price = chain_info.price_usd if chain_info.price_usd else None
     create_date = chain_info.pair_created_at
     if create_date:
-        created_date = f'🗓️ Created date: {create_date.strftime(format='%Y-%m-%d')}\n'
+        created_date = f'🗓️ Created date: {create_date.strftime(format="%Y-%m-%d")}\n'
     else:
         created_date = None
     if interval == '5m':
@@ -392,7 +404,19 @@ async def i_final_response(message: Update.message, context: ContextTypes.DEFAUL
     reply_markup = InlineKeyboardMarkup([keyboard])
 
     await message.edit_text(
-        text=f'📌 Chain: {chain} ({interval})\n\n🏦 DEX Platform: {chain_info.dex_id}\n\n💸 Pair: {pair} \n{created_date if created_date else ""}\n💰 Price USD: {chain_info.price_usd if chain_info.price_usd else '-'} {f'({price_chain}%)' if chain_info.price_usd else ''}\n🛒 PairtransactionCount: Buy: {format_number(pair_count.buys)} / Sell: {format_number(pair_count.sells)}\n\n🌊 Volume: {'--' if volume == 0 else f'${volume}'}\n\n💦 Liquidity: Total: ${format_number(liquidity.usd)}\n     Base: {format_number(liquidity.base)}({chain_info.base_token.symbol}) / Quote: {format_number(liquidity.quote)}({chain_info.quote_token.symbol})',
+        text=(
+            f'📌 Chain: {chain} ({interval})\n\n'
+            f'🏦 DEX Platform: {chain_info.dex_id}\n\n'
+            f'💸 Pair: {pair} \n'
+            f'{created_date if created_date else ""}\n'
+            f'💰 Price USD: {chain_info.price_usd if chain_info.price_usd else "-"} '
+            f'{f"({price_chain}%)" if chain_info.price_usd else ""}\n'
+            f'🛒 PairtransactionCount: Buy: {format_number(pair_count.buys)} / Sell: {format_number(pair_count.sells)}\n\n'
+            f'🌊 Volume: {"--" if volume == 0 else f"${volume}"}\n\n'
+            f'💦 Liquidity: Total: ${format_number(liquidity.usd)}\n'
+            f'     Base: {format_number(liquidity.base)}({chain_info.base_token.symbol}) / '
+            f'Quote: {format_number(liquidity.quote)}({chain_info.quote_token.symbol})'
+        ),
         parse_mode=ParseMode.HTML,
         reply_markup=reply_markup,
         disable_web_page_preview=True
@@ -1109,3 +1133,23 @@ async def cx_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await asyncio.sleep(5)
             await sent_message.delete()
             return None
+    
+async def ta_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)->None:
+    message = update.callback_query.message
+    text = update.callback_query.data
+    chart_url = text.split("_")[1]
+    await message.delete()
+    send_message = await context.bot.send_message(text= f'🧠⏳️ Analyzing chart image, this might take a few moments. Please wait...', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
+    
+    info = ta_response(chart_url=chart_url)
+    if info:
+        await send_message.edit_text(text= f'{info}', parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+        log_function(log_type="ta", chat_id=message.chat_id, chain_id="", chain_address=chart_url, result=f'successful') 
+    else:
+        log_function(log_type="ta", chat_id=message.chat_id, chain_id="", chain_address=chart_url, result=f'Failed in analysis')
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Technial Analysis', user_input=f'`{chart_url}`', result_code=f'Failed in analysis')
+        await send_message.edit_text(text= f'❌ Technical analysis has failed on this chart. This may be due to an internal error or the chart does not have enough information to be analysed. If you need more details please contact me directly @fieryfox617', parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+        await asyncio.sleep(5)
+        await send_message.delete()
+        return None
+        

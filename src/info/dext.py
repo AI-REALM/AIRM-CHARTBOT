@@ -77,7 +77,11 @@ def get_picture(chain, address, file_path, indicators, style, interval):
         if process.returncode == 0:
             output = process.stdout
             data = json.loads(output)
-            return True, data["copy_url"]
+            try:
+                chart_url = data["copy_url"].split("/")[-2]
+            except:
+                chart_url = ''
+            return True, chart_url
         else:
             return False, f'{chain} {address} {file_path} {indicators} {style} {interval}'
 

@@ -90,7 +90,7 @@ function sleep(ms) {
     await page.$eval('div.accessible-NQERJsv9.item-jFqVJoPk.item-o5a0MQMm.withIcon-jFqVJoPk.withIcon-o5a0MQMm[data-name="copy-link-to-the-chart-image"]', (el) => {el.click()});
     // await page.close();
     // await browser.disconnect();
-    await sleep(3000)
+    await frame.waitForSelector('div.container-TCHLKPuQ.container-success-TCHLKPuQ.notice-Q8oybhDM', {timeout:6000});
     // Read the copied string from the clipboard
     const copiedValue = await page.evaluate(() => navigator.clipboard.readText());
     let returnValue = {
