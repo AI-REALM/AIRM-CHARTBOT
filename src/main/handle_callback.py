@@ -49,3 +49,6 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
     elif query.data.startswith('ta_'):
         # Call settings function directly when "Settings" button is pressed
         await ta_handle(update, context)
+    elif query.data.startswith('N_'):
+        # Call settings function directly when "Settings" button is pressed
+        await notification_calling_handler(update, context)

@@ -1,13 +1,17 @@
 # Import required classes from the library
 import os, requests
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, JobQueue, MessageHandler, filters
 from dotenv import load_dotenv
 
 from src.main.stactic_commands import *
 from src.main.handle_callback import *
 from src.main.user_settings import *
 from src.main.main_commands import *
+from src.main.notification import send_message
 
+import schedule
+import time, asyncio
+import threading
 load_dotenv(dotenv_path='.env')
 
 # Use your own bot token here
@@ -37,6 +41,7 @@ response = requests.post(API_URL, json={"commands": commands})
 
 # Main function update
 def main() -> None:
+    global application
     application = Application.builder().token(TOKEN).build()
     
     # Existing start handler
@@ -101,6 +106,12 @@ def main() -> None:
     # Add the CallbackQueryHandler with a different variable name to avoid conflict
     callback_query_handler_obj = CallbackQueryHandler(callback_query_handler)
     application.add_handler(callback_query_handler_obj)
+
+    general_handler = MessageHandler(filters=filters.TEXT, callback=general_chat_handle)
+    application.add_handler(general_handler)
+
+    job_queue = application.job_queue
+    job_queue.run_repeating(callback=send_message, interval=300, first=0)  # 600 seconds = 10 minutes
     
     application.run_polling()
 

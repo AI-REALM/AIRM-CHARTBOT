@@ -9,6 +9,7 @@ from ..info.dext import dx_get_info, get_picture, get_heatmap
 from .admin_commands import admin_notify, log_function
 from ..info.cex import cex_exact_info, cex_info_symbol_market_pair, cex_historical_info, get_detailed_info, get_picture_cex
 from ..info.ta import ta_response
+from .user_settings import default_chain, default_condition
 from dotenv import load_dotenv
 load_dotenv(dotenv_path='.env')
 
@@ -1160,4 +1161,97 @@ async def ta_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)->None:
         await asyncio.sleep(5)
         await send_message.delete()
         return None
-        
+
+# general chat handler function
+async def general_chat_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.message or update.callback_query.message
+    chat_id = message.chat_id
+    user = get_user_by_id(chat_id)
+    if not user:
+        user = create_user(chat_id)
+    commands = user.status.split("_")
+    if user.status.startswith("Add_Notify"):
+        text = update.message.text or update.callback_query.data
+        message_id = int(user.status.split("_")[-1])
+
+        if chat_id < 0 and not "@AIRMAuditorBOT" in text:
+            pass
+        else:
+            if "@AIRMAuditorBOT" in text:
+                text = text.replace("@AIRMAuditorBOT", "").strip()
+            keyboard = []
+            keyboard.append([InlineKeyboardButton("CEX", callback_data=f'N_C_{text}'), InlineKeyboardButton("DEX", callback_data=f'N_D_{text}')])
+            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data='N_add_notify'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await message.delete()
+            await context.bot.edit_message_text(
+                text=
+                f'* Add New Alert & Notification *\n\n'
+                f'*Symbol:* {text}\n\n'
+                f"What platform do you want?",
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=reply_markup, 
+                parse_mode=ParseMode.MARKDOWN_V2,
+                disable_web_page_preview=True
+            )
+
+    elif user.status.startswith('N_Edit_V_'):
+        text = update.message.text or update.callback_query.data
+        if chat_id < 0 and not "@AIRMAuditorBOT" in text:
+            pass
+        else:
+            if "@AIRMAuditorBOT" in text:
+                text = text.replace("@AIRMAuditorBOT", "").strip()
+            symbol = commands[3]
+            message_id = int(commands[-1])
+            keyboard = []
+            keyboard.append([InlineKeyboardButton("No", callback_data=f'N_Edit_{int(symbol)}'), InlineKeyboardButton("Yes", callback_data=f'N_Edit_V_{text}_Y_{int(symbol)}')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await message.delete()
+            await context.bot.edit_message_text(
+                text=
+                f'Are you sure you want to change the limited value to {text}?',
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=reply_markup, 
+                parse_mode=ParseMode.MARKDOWN_V2,
+                disable_web_page_preview=True
+            )
+    
+    elif len(commands) == 8:
+        text = update.message.text or update.callback_query.data
+        if chat_id < 0 and not "@AIRMAuditorBOT" in text:
+            pass
+        else:
+            role = commands[1]
+            name = commands[2]
+            symbol = commands[3]
+            chain = commands[4]
+            platform = commands[5]
+            condition = commands[6]
+            message_id = int(commands[7])
+            if "@AIRMAuditorBOT" in text:
+                text = text.replace("@AIRMAuditorBOT", "").strip()
+            keyboard = []
+            keyboard.append([InlineKeyboardButton("Telegram", callback_data=f'N_{role}_N_S_C_P_C_{text}_T')])
+            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_{role}_N_S_C_P_{condition}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await message.delete()
+            await context.bot.edit_message_text(
+                text=
+                f'* Add New Alert & Notification *\n\n'
+                f'*Exchange Type:* DEX\n'
+                f'*Name:* {name}\n'
+                f'*Symbol:* {symbol}\n'
+                f'*Chain:* {default_chain[chain]}\n'
+                f'*DEX Platform*: {platform}\n'
+                f'*Monitored Item:* {default_condition[condition]}\n'
+                f'*Limited Value:* {text}\n\n'
+                "Please choose notification type\.",
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=reply_markup, 
+                parse_mode=ParseMode.MARKDOWN_V2,
+                disable_web_page_preview=True
+            )
