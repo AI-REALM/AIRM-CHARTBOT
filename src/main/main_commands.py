@@ -1,5 +1,5 @@
 # Import required classes from the library
-import json, asyncio, os
+import json, asyncio, os, re
 from telegram.ext import ContextTypes
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from datetime import datetime, timedelta
@@ -151,6 +151,15 @@ def format_number(num):
             return f'{num/n:.1f}{suf}'
     rounded_number = round(num, 3)
     return rounded_number
+
+def escape_special_characters(text):
+    # Define the pattern for special characters that need to be escaped
+    pattern = r'(\\|\[|\]|\(|\)|~|>|#|\+|-|=|\||\{|\}|\.|!)'
+    
+    # Use the sub method from re to replace the characters with their escaped versions
+    escaped_text = re.sub(pattern, r'\\\1', text)
+    
+    return escaped_text
 
 # /dx handling functions
 async def dx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -405,17 +414,7 @@ async def i_final_response(message: Update.message, context: ContextTypes.DEFAUL
 
     await message.edit_text(
         text=(
-            f'📌 Chain: {chain} ({interval})\n\n'
-            f'🏦 DEX Platform: {chain_info.dex_id}\n\n'
-            f'💸 Pair: {pair} \n'
-            f'{created_date if created_date else ""}\n'
-            f'💰 Price USD: {chain_info.price_usd if chain_info.price_usd else "-"} '
-            f'{f"({price_chain}%)" if chain_info.price_usd else ""}\n'
-            f'🛒 PairtransactionCount: Buy: {format_number(pair_count.buys)} / Sell: {format_number(pair_count.sells)}\n\n'
-            f'🌊 Volume: {"--" if volume == 0 else f"${volume}"}\n\n'
-            f'💦 Liquidity: Total: ${format_number(liquidity.usd)}\n'
-            f'     Base: {format_number(liquidity.base)}({chain_info.base_token.symbol}) / '
-            f'Quote: {format_number(liquidity.quote)}({chain_info.quote_token.symbol})'
+            f'📌 Chain: {chain} ({interval})\n\n🏦 DEX Platform: {chain_info.dex_id}\n\n💸 Pair: {pair} \n{created_date if created_date else ""}\n💰 Price USD: {chain_info.price_usd if chain_info.price_usd else "-"} {f"({price_chain}%)" if chain_info.price_usd else ""}\n🛒 PairtransactionCount: Buy: {format_number(pair_count.buys)} / Sell: {format_number(pair_count.sells)}\n\n🌊 Volume: {"--" if volume == 0 else f"${volume}"}\n\n💦 Liquidity: Total: ${format_number(liquidity.usd)}\n     Base: {format_number(liquidity.base)}({chain_info.base_token.symbol}) / Quote: {format_number(liquidity.quote)}({chain_info.quote_token.symbol})'
         ),
         parse_mode=ParseMode.HTML,
         reply_markup=reply_markup,
@@ -1209,9 +1208,9 @@ async def general_chat_handle(update: Update, context: ContextTypes.DEFAULT_TYPE
             keyboard.append([InlineKeyboardButton("No", callback_data=f'N_Edit_{int(symbol)}'), InlineKeyboardButton("Yes", callback_data=f'N_Edit_V_{text}_Y_{int(symbol)}')])
             reply_markup = InlineKeyboardMarkup(keyboard)
             await message.delete()
+            reply_text= f'Are you sure you want to change the limited value to {text}?'
             await context.bot.edit_message_text(
-                text=
-                f'Are you sure you want to change the limited value to {text}?',
+                text=escape_special_characters(reply_text),
                 chat_id=chat_id,
                 message_id=message_id,
                 reply_markup=reply_markup, 
@@ -1238,17 +1237,9 @@ async def general_chat_handle(update: Update, context: ContextTypes.DEFAULT_TYPE
             keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_{role}_N_S_C_P_{condition}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
             reply_markup = InlineKeyboardMarkup(keyboard)
             await message.delete()
+            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Chain:* {default_chain[chain]}\n*DEX Platform*: {platform}\n*Monitored Item:* {default_condition[condition]}\n*Limited Value:* {text}\n\nPlease choose notification type.'
             await context.bot.edit_message_text(
-                text=
-                f'* Add New Alert & Notification *\n\n'
-                f'*Exchange Type:* DEX\n'
-                f'*Name:* {name}\n'
-                f'*Symbol:* {symbol}\n'
-                f'*Chain:* {default_chain[chain]}\n'
-                f'*DEX Platform*: {platform}\n'
-                f'*Monitored Item:* {default_condition[condition]}\n'
-                f'*Limited Value:* {text}\n\n'
-                "Please choose notification type\.",
+                text= escape_special_characters(reply_text),
                 chat_id=chat_id,
                 message_id=message_id,
                 reply_markup=reply_markup, 

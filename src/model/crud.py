@@ -89,7 +89,7 @@ def count_user():
         return False
     return user
 
-def create_notification(chat_id:int, crypto_type:str, name:str, symbol:str, chain:str, platform:str, condition:str, value:int, notify_method: str):
+def create_notification(chat_id:int, crypto_type:str, name:str, symbol:str, chain:str, platform:str, condition:str, value:float, notify_method: str):
     db_noitfy = Noitfy(chat_id=chat_id, email=None, phone=None, crypto_type=crypto_type, name=name, symbol=symbol, chain=chain, platform=platform, condition=condition, value=value, notify_method=notify_method)
     try:
         db.add(db_noitfy)
