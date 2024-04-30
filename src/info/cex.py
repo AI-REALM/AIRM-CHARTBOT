@@ -13,18 +13,18 @@ def cex_info_symbol_market_pair(symbol):
     try:
         info = cmc_client.cryptocurrency_marketpairs_latest(symbol=symbol).data
     except Exception as e:
-        return e.rep.error_message
+        return False, e.rep.error_message
     market_pair = {}
     for i in info[0]["market_pairs"]:
         if i["market_pair_quote"]["exchange_symbol"] in market_pair:
             market_pair[i["market_pair_quote"]["exchange_symbol"]].append(i)
         else:
             market_pair[i["market_pair_quote"]["exchange_symbol"]] = [i]
-
+    name = info[0]["name"]
     if "USD" in market_pair:
-        return market_pair["USD"]
+        return name, market_pair["USD"]
     elif "USDT" in market_pair:
-        return market_pair["USDT"]
+        return name, market_pair["USDT"]
     else:
         max_value = 0
         max_pair = ""
@@ -32,7 +32,7 @@ def cex_info_symbol_market_pair(symbol):
             average_price = sum([pair["quote"]["USD"]["price"] for pair in market_pair[i]]) / len(market_pair[i])
             if average_price > max_value:
                 max_pair = i
-        return market_pair[max_pair]
+        return name, market_pair[max_pair]
 
 def cex_exact_info(symbol, market_pair):
     try:

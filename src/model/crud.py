@@ -1,12 +1,12 @@
 from sqlalchemy.orm import Session, sessionmaker
-from .models import User, Base, Noitfy
+from .models import User, Base, Notify
 from .database import SessionLocal, engine
 
 Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 
 def create_user(chat_id:int):
-    db_user = User(id=chat_id, indicators=None, interval="1h", style="candle", timezone="America/New_York", chain="ethereum", status="dx")
+    db_user = User(id=chat_id, premium=False, premium_date=None, indicators=None, interval="1h", style="candle", timezone="America/New_York", chain="ethereum", status="dx")
     try:
         db.add(db_user)
         db.commit()
@@ -14,6 +14,15 @@ def create_user(chat_id:int):
     except:
         return False
     return db_user
+
+# Define the premium updating function
+def update_premium(id:int, end:str):
+    user = db.query(User).filter(User.id == id).update({"indicators" : end})
+    try:
+        db.commit()
+    except:
+        return False
+    return user
 
 # Define the indicator updating function
 def update_indicators(id:int, indicators:str):
@@ -89,8 +98,8 @@ def count_user():
         return False
     return user
 
-def create_notification(chat_id:int, crypto_type:str, name:str, symbol:str, chain:str, platform:str, condition:str, value:float, notify_method: str):
-    db_noitfy = Noitfy(chat_id=chat_id, email=None, phone=None, crypto_type=crypto_type, name=name, symbol=symbol, chain=chain, platform=platform, condition=condition, value=value, notify_method=notify_method)
+def create_notification(chat_id:int, crypto_type:str, name:str, symbol:str, chain:str, platform:str, condition:str, con_type:str, value:float, notify_method: str):
+    db_noitfy = Notify(chat_id=chat_id, email=None, phone=None, crypto_type=crypto_type, name=name, symbol=symbol, chain=chain, platform=platform, condition=condition, con_type=con_type, value=value, notify_method=notify_method)
     try:
         db.add(db_noitfy)
         db.commit()
@@ -99,16 +108,16 @@ def create_notification(chat_id:int, crypto_type:str, name:str, symbol:str, chai
         return False
     return db_noitfy
 
-def change_condition(notify_id:int, condition:str):
-    notify = db.query(Noitfy).filter(Noitfy.notify_id == notify_id).update({"condition" : condition})
+def change_condition(notify_id:int, condition:str, con_type:str):
+    notify = db.query(Notify).filter(Notify.notify_id == notify_id).update({"condition" : condition, "con_type":con_type})
     try:
         db.commit()
     except:
         return False
     return notify
 
-def change_value(notify_id:int, value:int):
-    notify = db.query(Noitfy).filter(Noitfy.notify_id == notify_id).update({"value" : value})
+def change_value(notify_id:int, value:float):
+    notify = db.query(Notify).filter(Notify.notify_id == notify_id).update({"value" : value})
     try:
         db.commit()
     except:
@@ -116,7 +125,7 @@ def change_value(notify_id:int, value:int):
     return notify
 
 def change_notify_method(notify_id:int, notify_method:str):
-    notify = db.query(Noitfy).filter(Noitfy.notify_id == notify_id).update({"notify_method" : notify_method})
+    notify = db.query(Notify).filter(Notify.notify_id == notify_id).update({"notify_method" : notify_method})
     try:
         db.commit()
     except:
@@ -124,26 +133,26 @@ def change_notify_method(notify_id:int, notify_method:str):
     return notify
 
 def get_notify_by_chat_id(chat_id:int):
-    notify = db.query(Noitfy).filter(Noitfy.chat_id == chat_id).all()
+    notify = db.query(Notify).filter(Notify.chat_id == chat_id).all()
     if not notify:
         return False
     return notify
 
 def get_notify_by_id(notify_id:int):
-    notify = db.query(Noitfy).filter(Noitfy.notify_id == notify_id).first()
+    notify = db.query(Notify).filter(Notify.notify_id == notify_id).first()
     if not notify:
         return False
     return notify
 
 def get_notify_all():
-    notify = db.query(Noitfy).filter().all()
+    notify = db.query(Notify).filter().all()
     if not notify:
         return False
     return notify
 
 def delete_notification(notify_id:int):
     try:
-        db.query(Noitfy).filter(Noitfy.notify_id == notify_id).delete()
+        db.query(Notify).filter(Notify.notify_id == notify_id).delete()
         db.commit()
         return True
     except:

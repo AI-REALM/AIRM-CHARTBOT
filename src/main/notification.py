@@ -28,22 +28,22 @@ def notification_handles():
                             if org_notification[i.symbol][i.name][i.chain][i.platform].get(i.condition):
                                 org_notification[i.symbol][i.name][i.chain][i.platform][i.condition].append([i.chat_id, i.value, i.notify_method])
                             else:
-                                org_notification[i.symbol][i.name][i.chain][i.platform][i.condition] = [[i.chat_id, i.value, i.notify_method]]
+                                org_notification[i.symbol][i.name][i.chain][i.platform][i.condition] = [[i.chat_id, i.value, i.con_type, i.notify_method]]
                         else:
                             org_notification[i.symbol][i.name][i.chain][i.platform] = {
-                                i.condition: [[i.chat_id, i.value, i.notify_method]]
+                                i.condition: [[i.chat_id, i.value, i.con_type, i.notify_method]]
                             }
                     else:
                         org_notification[i.symbol][i.name][i.chain] = {
                             i.platform: {
-                                i.condition: [[i.chat_id, i.value, i.notify_method]]
+                                i.condition: [[i.chat_id, i.value, i.con_type, i.notify_method]]
                             }
                         }
                 else:
                     org_notification[i.symbol][i.name] = {
                         i.chain: {
                             i.platform: {
-                                i.condition: [[i.chat_id, i.value, i.notify_method]]
+                                i.condition: [[i.chat_id, i.value, i.con_type, i.notify_method]]
                             }
                         }
                     }
@@ -53,7 +53,7 @@ def notification_handles():
                     i.name : {
                         i.chain: {
                             i.platform: {
-                                i.condition: [[i.chat_id, i.value, i.notify_method]]
+                                i.condition: [[i.chat_id, i.value, i.con_type, i.notify_method]]
                             }
                         }
                     }
@@ -74,15 +74,33 @@ def notification_current_list(org_notification:dict):
                                 for condition in org_notification[symbol][i.base_token.name][i.chain_id][i.dex_id].keys():
                                     for value in org_notification[symbol][i.base_token.name][i.chain_id][i.dex_id][condition]:
                                         if condition == 'P':
-                                            if i.price_usd >= value[1]:
-                                                send_notification.append([value[0], f'The price of {i.base_token.name} exceeded ${value[1]} at ${i.price_usd}.', i.chain_id, i.pair_address, 'P'])
+                                            if value[2] == "M":
+                                                if i.price_usd >= value[1]:
+                                                    send_notification.append([value[0], f'The price of {i.base_token.name} exceeded ${value[1]} at ${i.price_usd}.', i.chain_id, i.pair_address, 'P'])
+                                            elif value[2] == 'L':
+                                                if i.price_usd <= value[1]:
+                                                    send_notification.append([value[0], f'The price of {i.base_token.name} fell below ${value[1]} to ${i.price_usd}.', i.chain_id, i.pair_address, 'P'])
+                                            elif value[2] == 'C':
+                                                if i.price_change.m5 < 0:
+                                                    send_notification.append([value[0], f'The price of {i.base_token.name} fell {i.price_change.m5}% to ${i.price_usd}.', i.chain_id, i.pair_address, 'P'])
+                                                elif i.price_change.m5 > 0:
+                                                    send_notification.append([value[0], f'The price of {i.base_token.name} rose {i.price_change.m5}% to ${i.price_usd}.', i.chain_id, i.pair_address, 'P'])
                                         elif condition == 'V':
-                                            if i.volume.h24 >= value[1]:
-                                                send_notification.append([value[0], f'The volume(24h) of {i.base_token.name} exceeded {value[1]} at {i.volume.h24}.', i.chain_id, i.pair_address, 'V'])
+                                            if value[2] == "M":
+                                                if i.volume.h24 >= value[1]:
+                                                    send_notification.append([value[0], f'The volume(24h) of {i.base_token.name} exceeded {value[1]} at {i.volume.h24}.', i.chain_id, i.pair_address, 'V'])
+                                            elif value[2] == "L":
+                                                if i.volume.h24 <= value[1]:
+                                                    send_notification.append([value[0], f'The volume(24h) of {i.base_token.name} fell below {value[1]} at {i.volume.h24}.', i.chain_id, i.pair_address, 'V'])
                                         elif condition == 'L':
-                                            if i.liquidity.usd >= value[1]:
-                                                send_notification.append([value[0], f'The liquidity of {i.base_token.name} exceeded ${value[1]} at ${i.liquidity.usd}.', i.chain_id, i.pair_address, 'L'])
-                    else:
+                                            if value[2] == "M":
+                                                if i.liquidity.usd >= value[1]:
+                                                    send_notification.append([value[0], f'The liquidity of {i.base_token.name} exceeded ${value[1]} at ${i.liquidity.usd}.', i.chain_id, i.pair_address, 'L'])
+                                            elif value[2] == "L":
+                                                if i.liquidity.usd >= value[1]:
+                                                    send_notification.append([value[0], f'The liquidity of {i.base_token.name} fell below ${value[1]} at ${i.liquidity.usd}.', i.chain_id, i.pair_address, 'L'])
+                                            
+                    else:   
                         pass
                 else:
                     pass

@@ -10,6 +10,7 @@ from .admin_commands import admin_notify, log_function
 from ..info.cex import cex_exact_info, cex_info_symbol_market_pair, cex_historical_info, get_detailed_info, get_picture_cex
 from ..info.ta import ta_response
 from .user_settings import default_chain, default_condition
+from .notification_settings import default_con_type
 from dotenv import load_dotenv
 load_dotenv(dotenv_path='.env')
 
@@ -479,7 +480,7 @@ async def i_cx_final_response(message: Update.message, context: ContextTypes.DEF
     reply_markup = InlineKeyboardMarkup([keyboard])
     await message.edit_text(
         text=f'📌 Project: {detailed_info["name"]}/{symbol}\n'
-        f'🗓️ Create Date: {detailed_info["date_added"].split("T")[0].replace("-", " ")}\n\n'
+        f'🗓️ Create Date: {detailed_info["date_added"].split("T")[0].replace(" ", "-")}\n\n'
         f'💰 Price USD: ${"{:,}".format(price)}\n'
         f'💵 Market cap: ${"{:,}".format(market_cap)}\n'
         f'🪙 Supply: Total: {format_number(detailed_info["total_supply"])} / Circ: {format_number(detailed_info["circulating_supply"])}\n\n'
@@ -579,7 +580,7 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
             await message.delete()
             sent_message = await message.reply_text(f'Searching info of `{user_input}` for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
-            info = cex_info_symbol_market_pair(symbol=user_input)
+            name, info = cex_info_symbol_market_pair(symbol=user_input)
             
             if type(info) != str:
                 if len(info) == 1:
@@ -869,7 +870,7 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
             await message.delete()
             sent_message = await message.reply_text(f'Searching info of `{user_input}` for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
-            info = cex_info_symbol_market_pair(symbol=user_input)
+            name, info = cex_info_symbol_market_pair(symbol=user_input)
             
             if type(info) != str:
                 if len(info) == 1:
@@ -995,7 +996,7 @@ async def cx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     sent_message = await message.reply_text(f'Searching info of `{user_input}` for {user.interval} period', parse_mode=ParseMode.MARKDOWN)
 
-    info = cex_info_symbol_market_pair(symbol=user_input)
+    name, info = cex_info_symbol_market_pair(symbol=user_input)
     
     if type(info) != str:
         if len(info) == 1:
@@ -1169,7 +1170,7 @@ async def general_chat_handle(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not user:
         user = create_user(chat_id)
     commands = user.status.split("_")
-    if user.status.startswith("Add_Notify"):
+    if len(commands) == 3 and commands[1] == 'A':
         text = update.message.text or update.callback_query.data
         message_id = int(user.status.split("_")[-1])
 
@@ -1179,8 +1180,8 @@ async def general_chat_handle(update: Update, context: ContextTypes.DEFAULT_TYPE
             if "@AIRMAuditorBOT" in text:
                 text = text.replace("@AIRMAuditorBOT", "").strip()
             keyboard = []
-            keyboard.append([InlineKeyboardButton("CEX", callback_data=f'N_C_{text}'), InlineKeyboardButton("DEX", callback_data=f'N_D_{text}')])
-            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data='N_add_notify'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
+            keyboard.append([InlineKeyboardButton("CEX", callback_data=f'N_A_C_{text}'), InlineKeyboardButton("DEX", callback_data=f'N_A_D_{text}')])
+            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data='N_A'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
             reply_markup = InlineKeyboardMarkup(keyboard)
             await message.delete()
             await context.bot.edit_message_text(
@@ -1195,17 +1196,17 @@ async def general_chat_handle(update: Update, context: ContextTypes.DEFAULT_TYPE
                 disable_web_page_preview=True
             )
 
-    elif user.status.startswith('N_Edit_V_'):
+    elif len(commands) == 6 and commands[1] == 'E':
         text = update.message.text or update.callback_query.data
         if chat_id < 0 and not "@AIRMAuditorBOT" in text:
             pass
         else:
             if "@AIRMAuditorBOT" in text:
                 text = text.replace("@AIRMAuditorBOT", "").strip()
-            symbol = commands[3]
+            symbol = commands[4]
             message_id = int(commands[-1])
             keyboard = []
-            keyboard.append([InlineKeyboardButton("No", callback_data=f'N_Edit_{int(symbol)}'), InlineKeyboardButton("Yes", callback_data=f'N_Edit_V_{text}_Y_{int(symbol)}')])
+            keyboard.append([InlineKeyboardButton("No", callback_data=f'N_E_{commands[2]}_V_{int(symbol)}'), InlineKeyboardButton("Yes", callback_data=f'N_E_{commands[2]}_V_{text}_Y_{int(symbol)}')])
             reply_markup = InlineKeyboardMarkup(keyboard)
             await message.delete()
             reply_text= f'Are you sure you want to change the limited value to {text}?'
@@ -1218,26 +1219,30 @@ async def general_chat_handle(update: Update, context: ContextTypes.DEFAULT_TYPE
                 disable_web_page_preview=True
             )
     
-    elif len(commands) == 8:
+    elif len(commands) == 10:
         text = update.message.text or update.callback_query.data
         if chat_id < 0 and not "@AIRMAuditorBOT" in text:
             pass
         else:
-            role = commands[1]
-            name = commands[2]
-            symbol = commands[3]
-            chain = commands[4]
-            platform = commands[5]
-            condition = commands[6]
-            message_id = int(commands[7])
+            role = commands[2]
+            name = commands[3]
+            symbol = commands[4]
+            chain = commands[5]
+            platform = commands[6]
+            condition = commands[7]
+            con_type = commands[8]
+            message_id = int(commands[9])
             if "@AIRMAuditorBOT" in text:
                 text = text.replace("@AIRMAuditorBOT", "").strip()
             keyboard = []
-            keyboard.append([InlineKeyboardButton("Telegram", callback_data=f'N_{role}_N_S_C_P_C_{text}_T')])
-            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_{role}_N_S_C_P_{condition}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
+            keyboard.append([InlineKeyboardButton("Telegram", callback_data=f'N_A_{role}_N_S_C_T_P_C_{text}_T')])
+            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_A_{role}_N_S_C_P_C_{con_type}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
             reply_markup = InlineKeyboardMarkup(keyboard)
             await message.delete()
-            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Chain:* {default_chain[chain]}\n*DEX Platform*: {platform}\n*Monitored Item:* {default_condition[condition]}\n*Limited Value:* {text}\n\nPlease choose notification type.'
+            if role == "D":
+                reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Chain:* {default_chain[chain]}\n*DEX Platform*: {platform}\n*Monitored Item:* {default_condition[condition]} ({default_con_type[con_type]})\n*Limited Value:* {text}\n\nPlease choose notification type.'
+            else:
+                reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Chain:* {chain}\n*Monitored Item:* {default_condition[condition]} ({default_con_type[con_type]})\n*Limited Value:* {text}\n\nPlease choose notification type.'
             await context.bot.edit_message_text(
                 text= escape_special_characters(reply_text),
                 chat_id=chat_id,

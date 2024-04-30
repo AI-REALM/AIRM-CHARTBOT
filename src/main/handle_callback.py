@@ -4,6 +4,7 @@ from telegram import Update
 from .stactic_commands import bot_commands
 from .user_settings import *
 from .main_commands import *
+from .notification_settings import *
 
 async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -49,6 +50,12 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
     elif query.data.startswith('ta_'):
         # Call settings function directly when "Settings" button is pressed
         await ta_handle(update, context)
-    elif query.data.startswith('N_'):
+    elif query.data.startswith('N_A'):
         # Call settings function directly when "Settings" button is pressed
-        await notification_calling_handler(update, context)
+        await notification_add_calling_handler(update, context)
+    elif query.data.startswith('N_E'):
+        # Call settings function directly when "Settings" button is pressed
+        await notification_edit_calling_handler(update, context)
+    elif query.data.startswith('N_DA'):
+        # Call settings function directly when "Settings" button is pressed
+        await notification_details_handler(update, context)
