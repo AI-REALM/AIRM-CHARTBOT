@@ -121,7 +121,7 @@ default_platform = {
     "bybit":"Bybit",
     "okx":"OKX",
     "gate-io":"Gate.io",
-    "coinbase-exchange":"Coinbase Exchange",
+    "coinbase-exchange":"Coinbase",
     "upbit":"Upbit",
     "bitget":"Bitget",
     "kucoin":"KuCoin",
@@ -560,7 +560,8 @@ async def handling_settings_callback(update: Update, context: ContextTypes.DEFAU
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Get today's date in the format YYYY-MM-DD
     today_date = datetime.now().strftime("%Y-%m-%d")
-    user_count = count_user()
+    user_indivdual = count_individual_user()
+    grounps = count_groups()
     with open("chart_log.txt", 'r', encoding='utf-8') as f:
         chart_count = len(f.readlines())
         f.close()
@@ -569,9 +570,9 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         imporession_count = len(f.readlines())
         f.close()
     # Define the stats message with the current date
-    stats_message = (f'📊 *AI Realm stats for {today_date}:*\n\n'
-                     f'💬 Groups using AI Realm Bot: *719*\n'
-                     f'👤 Unique users: *{user_count}*\n'
+    stats_message = (f'📊 *AI Realm v1.2.0 stats for {today_date}:*\n\n'
+                     f'💬 Groups using AI Realm Bot: *{grounps}*\n'
+                     f'👤 Unique users: *{user_indivdual}*\n'
                      f'🪄 Charts generated: *{chart_count}*\n'
                      f'👁️ User impressions: *{imporession_count + chart_count}*')
     # Send the stats message

@@ -10,9 +10,6 @@ from src.main.main_commands import *
 from src.main.notification import send_message
 from src.payment.premium import checking_and_update_invoice
 
-import schedule
-import time, asyncio
-import threading
 load_dotenv(dotenv_path='.env')
 
 # Use your own bot token here

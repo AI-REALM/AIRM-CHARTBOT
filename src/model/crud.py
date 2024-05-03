@@ -115,11 +115,14 @@ def delete_user(id:int):
     except:
         return False
 
-def count_user():
-    user = db.query(User).count()
-    if not user:
-        return False
-    return user
+def count_individual_user():
+    user_count = db.query(User).filter(User.id > 0).count()
+    return user_count if user_count >= 0 else False
+
+# Define count function for groups
+def count_groups():
+    user_group = db.query(User).filter(User.id < 0).count()
+    return user_group if user_group >= 0 else False
 
 def get_users_invoice_enable():
     user = db.query(User).filter(User.invoice != None).all()

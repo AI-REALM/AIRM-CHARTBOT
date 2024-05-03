@@ -108,7 +108,7 @@ default_platform = {
     "bybit":"Bybit",
     "okx":"OKX",
     "gate-io":"Gate.io",
-    "coinbase-exchange":"Coinbase Exchange",
+    "coinbase-exchange":"Coinbase",
     "upbit":"Upbit",
     "bitget":"Bitget",
     "kucoin":"KuCoin",

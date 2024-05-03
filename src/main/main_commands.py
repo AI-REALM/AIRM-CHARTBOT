@@ -7,7 +7,7 @@ from telegram.constants import ParseMode
 from ..model.crud import get_user_by_id, create_user
 from ..info.dext import dx_get_info, get_picture, get_heatmap
 from .admin_commands import admin_notify, log_function
-from ..info.cex import cex_exact_info, cex_info_symbol_market_pair, cex_historical_info, get_detailed_info, get_picture_cex
+from ..info.cex import cex_exact_info, cex_info_symbol_market_pair, get_detailed_info, get_picture_cex
 from ..info.ta import ta_response
 from .user_settings import default_chain, default_condition
 from .notification_settings import default_con_type

@@ -141,7 +141,10 @@ async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def changelog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     changelog_text = (
         "📋 CHANGELOG:\n"
-        "📦 v1.0.0: first stable release of the bot 🎉 (20-01-2024)"
+        "📦 v1.0.0: first stable release of the bot 🎉 (20-01-2024)\n"
+        "📦 v1.2.0: second stable release of the bot 🎉 (20-01-2024)\n"
+        "   - Technical Analysis\n"
+        "   - Alert & Notification\n"
     )
     await update.message.reply_text(changelog_text)
 
