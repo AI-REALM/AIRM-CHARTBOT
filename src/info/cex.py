@@ -87,7 +87,6 @@ def get_detailed_info(id):
         return e.rep.error_message
 
 def get_picture_cex(chain, exchange, file_path, indicators, style, interval):
-    print(f'{exchange} {chain} {file_path} nu {style} {interval}')
     if indicators == None or indicators == "":
         process = subprocess.run(['node', 'src\\info\\chart\\cex.js', exchange, chain, file_path, 'nu', style, str(interval)], capture_output=True, text=True, encoding='utf-8')
         if process.returncode == 0:

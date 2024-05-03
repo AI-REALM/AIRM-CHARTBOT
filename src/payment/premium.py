@@ -79,11 +79,9 @@ async def checking_and_update_invoice(context: ContextTypes.DEFAULT_TYPE):
     users = get_users_invoice_enable()
     for user in users:
         users_invoice[str(user.invoice)] = user.id
-    print(users_invoice)
 
     for invoice in users_invoice:
         status = get_status_invoice_id(invoice)
-        print(status)
         for i in status:
             if i['payment_status'] == "finished":
                 user = update_premium(id=users_invoice[invoice], price=i["price_amount"])
