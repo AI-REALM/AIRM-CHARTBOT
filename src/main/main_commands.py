@@ -757,7 +757,7 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
         start = now - timedelta(days=90)
         user_interval = 1440
         period = "daily"
-    running, picture = get_picture_cex(exchange=main_chain["exchange"]["name"], chain=main_chain["market_pair"].replace("/", ""), file_path=file_path, style=style, indicators=indicators, interval=user_interval)
+    running, picture = get_picture_cex(exchange=main_chain["exchange"]["slug"], chain=main_chain["market_pair"].replace("/", ""), file_path=file_path, style=style, indicators=indicators, interval=user_interval)
     if running == False:
         log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange_slug, result="Failed in CEX Chart Generation")
         await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Cex',user_input=f'`{symbol}`, `{exchange_slug}`', result_code='Failed in CEX Chart Generation')
@@ -1039,7 +1039,7 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
         user_interval = 1440
         period = "daily"
     exchange_name = main_chain["exchange"]["name"]
-    running, picture = get_picture_cex(exchange=exchange_name, chain=main_chain["market_pair"].replace("/", ""), file_path=file_path, style=style, indicators=indicators, interval=user_interval)
+    running, picture = get_picture_cex(exchange=main_chain["exchange"]["slug"], chain=main_chain["market_pair"].replace("/", ""), file_path=file_path, style=style, indicators=indicators, interval=user_interval)
     detailed_info = get_detailed_info(id=crypto_id)
     # picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
     if running == False or type(detailed_info) == str:

@@ -2,8 +2,6 @@ import os
 import json
 import subprocess
 import coinmarketcapapi
-import pandas as pd
-import mplfinance as mpf
 from dotenv import load_dotenv
 
 # Load env of Coinmarketcap API
@@ -14,6 +12,28 @@ api_key = os.getenv('COINMAKRET_KEY')
 cmc_client = coinmarketcapapi.CoinMarketCapAPI(api_key)
 
 cex_platform = ["bybit", "okx", "gate-io", "coinbase-exchange", "upbit", "bitget", "kucoin", "bitflyer", "gemini", "exmo", "whitebit", "bitrue", "poloniex", "bitmart", "bithumb", "bitfinex", "kraken", "BingX", "binance"]
+
+default_platform = {
+    "bybit":"Bybit",
+    "okx":"OKX",
+    "gate-io":"Gate.io",
+    "coinbase-exchange":"Coinbase",
+    "upbit":"Upbit",
+    "bitget":"Bitget",
+    "kucoin":"KuCoin",
+    "bitflyer":"bitFlyer",
+    "gemini":"Gemini",
+    "exmo":"EXMO",
+    "whitebit":"WhiteBIT",
+    "bitrue":"Bitrue",
+    "poloniex":"Poloniex",
+    "bitmart":"BitMart",
+    "bithumb":"Bithumb",
+    "bitfinex":"Bitfinex",
+    "kraken":"Kraken",
+    "BingX":"BingX",
+    "binance":"Binance"
+}
 
 def cex_info_symbol_market_pair(symbol):
     try:
@@ -88,7 +108,7 @@ def get_detailed_info(id):
 
 def get_picture_cex(chain, exchange, file_path, indicators, style, interval):
     if indicators == None or indicators == "":
-        process = subprocess.run(['node', 'src\\info\\chart\\cex.js', exchange, chain, file_path, 'nu', style, str(interval)], capture_output=True, text=True, encoding='utf-8')
+        process = subprocess.run(['node', 'src\\info\\chart\\cex.js', default_platform[exchange], chain, file_path, 'nu', style, str(interval)], capture_output=True, text=True, encoding='utf-8')
         if process.returncode == 0:
             output = process.stdout
             data = json.loads(output)
@@ -100,7 +120,8 @@ def get_picture_cex(chain, exchange, file_path, indicators, style, interval):
         else:
             return False, f'{exchange}, {chain} {file_path} nu {style} {interval}'
     else:
-        process = subprocess.run(['node', 'src\\info\\chart\\cex.js', exchange, chain, file_path, indicators, style, str(interval)], capture_output=True, text=True, encoding='utf-8')
+        indicators_lk = ','.join(indicators.split(",")[:2])
+        process = subprocess.run(['node', 'src\\info\\chart\\cex.js', default_platform[exchange], chain, file_path, indicators, style, str(interval)], capture_output=True, text=True, encoding='utf-8')
         if process.returncode == 0:
             output = process.stdout
             data = json.loads(output)
