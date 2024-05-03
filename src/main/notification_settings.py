@@ -614,16 +614,10 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
         condition = commands[7]
         user = update_status(id=chat_id, status=f"N_A_{role}_{name}_{symbol}_{chain}_{platform}_{condition}_{message.message_id}")
         keyboard = []
-        if condition == 'P':
-            keyboard.append([
-                InlineKeyboardButton("More", callback_data=f'{query.data}_M'), 
-                InlineKeyboardButton("Less", callback_data=f'{query.data}_L'),
-                InlineKeyboardButton("Changed", callback_data=f'{query.data}_C')])
-        else:
-            keyboard.append([
-                InlineKeyboardButton("More", callback_data=f'{query.data}_M'), 
-                InlineKeyboardButton("Less", callback_data=f'{query.data}_L')])
-
+        keyboard.append([
+            InlineKeyboardButton("More", callback_data=f'{query.data}_M'), 
+            InlineKeyboardButton("Less", callback_data=f'{query.data}_L')
+        ])
         
         if role == "D":
             keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'{'_'.join(commands[:6])}_{platform}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
