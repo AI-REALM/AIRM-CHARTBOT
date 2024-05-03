@@ -10,3 +10,4 @@ mplfinance
 dexscreener
 
 psycopg2
+nowpayment

@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session, sessionmaker
 from .models import User, Base, Notify
 from .database import SessionLocal, engine
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 Base.metadata.create_all(bind=engine)
 db = SessionLocal()
@@ -75,6 +77,27 @@ def update_status(id:int, status:str):
     try:
         db.commit()
     except:
+        return False
+    return user
+
+def update_invoice(id:int, invoice:int):
+    user = db.query(User).filter(User.id == id).update({"invoice" : invoice})
+    try:
+        db.commit()
+    except:
+        return False
+    return user
+
+def update_premium(id:int, price: str):
+    months = {
+        '1': 1,
+        '2.5': 3,
+        '4.5': 6
+    }
+    now_date = datetime.now().date()
+    new_date = now_date + relativedelta(months=+months[price])
+    user = db.query(User).filter(User.id == id).update({"premium" : True, 'invoice':None, "premium_date":new_date})
+    if not user:
         return False
     return user
 

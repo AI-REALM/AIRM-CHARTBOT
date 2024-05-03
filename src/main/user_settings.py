@@ -5,6 +5,7 @@ from datetime import datetime
 from telegram.constants import ParseMode
 from ..model.crud import *
 from ..info.dext import get_token_chain_symbol
+from ..payment.premium import get_new_invoice, get_status_invoice_id
 
 # Chains that users can select
 default_chain = {
@@ -116,6 +117,28 @@ default_condition = {
   'S': 'Supply'
 }
 
+default_platform = {
+    "bybit":"Bybit",
+    "okx":"OKX",
+    "gate-io":"Gate.io",
+    "coinbase-exchange":"Coinbase Exchange",
+    "upbit":"Upbit",
+    "bitget":"Bitget",
+    "kucoin":"KuCoin",
+    "bitflyer":"bitFlyer",
+    "gemini":"Gemini",
+    "exmo":"EXMO",
+    "whitebit":"WhiteBIT",
+    "bitrue":"Bitrue",
+    "poloniex":"Poloniex",
+    "bitmart":"BitMart",
+    "bithumb":"Bithumb",
+    "bitfinex":"Bitfinex",
+    "kraken":"Kraken",
+    "BingX":"BingX",
+    "binance":"Binance"
+}
+
 def escape_special_characters(text):
     # Define the pattern for special characters that need to be escaped
     pattern = r'(\\|\[|\]|\(|\)|~|>|#|\+|-|=|\||\{|\}|\.|!)'
@@ -139,6 +162,9 @@ async def settings_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE)
         user = create_user(chat_id)
     
     keyboard = [[
+        InlineKeyboardButton("🌟 User Plan", callback_data='settings_premium'),
+    ],
+    [
         InlineKeyboardButton("📈 Indicators", callback_data='settings_indicators'),
         InlineKeyboardButton("⏳ Interval", callback_data='settings_interval'),
     ],
@@ -157,13 +183,23 @@ async def settings_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE)
     ]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     keyboard = []
+    reply_text = f'Current settings:\n\n'\
+        +f'⭐ User Plan: {'Premium' if user.premium else 'Standard'}\n\n'\
+        +f'📈 Indicators: {user.indicators if user.indicators else ""}\n'\
+        +f'⏳ Interval: {user.interval}\n'\
+        +f'🎨 Style: {user.style}\n'\
+        +f'🌏 Timezone: {user.timezone}\n'\
+        +f'🔗 Default Chain: {default_chain[user.chain]}'
+        
     if query_data == "settings_back":
         await message.edit_text(
-            f'Current settings:\n\n📈 Indicators: {user.indicators if user.indicators else ""}\n⏳ Interval: {user.interval}\n🎨 Style: {user.style}\n🌏 Timezone: {user.timezone}\n🔗 Default Chain: {default_chain[user.chain]}', reply_markup=reply_markup
+            text=reply_text, 
+            reply_markup=reply_markup
         )
     else:
         await message.reply_text(
-            f'Current settings:\n\n📈 Indicators: {user.indicators if user.indicators else ""}\n⏳ Interval: {user.interval}\n🎨 Style: {user.style}\n🌏 Timezone: {user.timezone}\n🔗 Default Chain: {default_chain[user.chain]}', reply_markup=reply_markup
+            text=reply_text, 
+            reply_markup=reply_markup
         )
 
 # Define the Indicators command callback function
@@ -362,6 +398,41 @@ async def chain_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         "Which chain would you like to use as the default chain?", reply_markup=reply_markup
     )
 
+async def premium_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.callback_query.message  # Get the message object
+    chat_id = message.chat_id
+    user = get_user_by_id(chat_id)
+    if not user:
+        user = create_user(chat_id)
+    
+    keyboard = []
+    if user.premium == False:
+        reply_text = f'⭐ User Plan: Standard\n\n'\
+            +f'Add more features to premium users, such as:\n'\
+            +f'- Notifications about various cryptocurrencies.\n'\
+            +f'- AI swap interface\n\n'\
+            +f'*Pricing*\n'\
+            +f'- 1 month: $1\n'\
+            +f'- 3 months: $2.5\n'\
+            +f'- 6 months: $4.5\n\n'\
+            +f'Do you want to upgrade?\n'
+        
+        keyboard.append([
+            InlineKeyboardButton("1 mon", callback_data='settings_premium_1'),
+            InlineKeyboardButton("3 mon", callback_data='settings_premium_3'),
+            InlineKeyboardButton("6 mon", callback_data='settings_premium_6')
+        ])
+        keyboard.append([InlineKeyboardButton("⬅ Back to Settings", callback_data='settings_back')])   
+    else:
+        keyboard.append([InlineKeyboardButton("⬅ Back to Settings", callback_data='settings_back')])
+        reply_text = f'⭐ User Plan: Premium\n📅 End date: {user.premium_date}'
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await message.edit_text(
+        text=escape_special_characters(reply_text), 
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.MARKDOWN_V2
+    ) 
+
 # Define the settgins update function
 async def update_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.callback_query.message  # Get the message object
@@ -407,6 +478,52 @@ async def update_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         update_chain(id=chat_id, chain=chain)
 
         await chain_dashboard(update, context)
+    elif commands[1] == 'premium':
+        price = {
+            '1': 1,
+            '3': 2.5,
+            '6': 4.5
+        }
+        user = get_user_by_id(chat_id)
+        if not user:
+            user = create_user(chat_id) 
+        new_flag = False
+        waiting_payment = 0
+        if user.invoice:
+            payment_list = get_status_invoice_id(invoice_id=user.invoice)
+            if price[commands[2]] == payment_list[0]['price_amount']:
+                for i in payment_list['data']:
+                    if i['payment_status'] == "finished":
+                        new_flag = True
+                        user = update_premium(id=chat_id, price=i["price_amount"])
+                        break
+                    elif i['payment_status'] == "waiting":
+                        waiting_payment = i["payment_id"]
+            else:
+                new_flag = True
+        else:
+            new_flag = True
+        invoice_url = ""
+        if waiting_payment != 0:
+            invoice_url = f'https://nowpayments.io/payment?iid={user.invoice}&paymentId={waiting_payment}'
+        else:
+            if new_flag:
+                invoice_id = get_new_invoice(price=price[commands[2]])
+                user = update_invoice(id=chat_id, invoice=invoice_id)
+            else:
+                invoice_id = user.invoice
+            invoice_url = f'https://nowpayments.io/payment?iid={invoice_id}'
+        keyboard = [
+            [InlineKeyboardButton("🔗 Pay now" , url=invoice_url)]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        if user:
+            await message.edit_text(
+                text="Please click the following button and make a payment now. We will check and inform you of the outcome!",
+                reply_markup=reply_markup
+            )
+        else:
+            pass
     else:
         pass
 
@@ -430,6 +547,8 @@ async def handling_settings_callback(update: Update, context: ContextTypes.DEFAU
             await chain_dashboard(update, context)
         elif commands[1] == 'notify':
             await notification_dashboard(update, context)
+        elif commands[1] == 'premium':
+            await premium_dashboard(update, context)
     elif len(commands) >= 3:
         await update_settings(update, context)
 
@@ -467,18 +586,17 @@ async def notification_dashboard(update: Update, context: ContextTypes.DEFAULT_T
     user = update_status(id=chat_id, status="DX")
     keyboard = []
     if notifies:
-        print(notifies)
         for i in range(0, len(notifies), 2):
             if notifies[i].crypto_type == "D":
                 title1 = f'{notifies[i].name}({default_chain[notifies[i].chain]}, {notifies[i].platform})'
             else:
-                title1 = f'{notifies[i].name}({notifies[i].chain})'
+                title1 = f'{notifies[i].name}({default_platform[notifies[i].chain]})'
             call_back1 = f'N_DA_{notifies[i].notify_id}'
             try:
                 if notifies[i+1].crypto_type == "D":
                     title2 = f'{notifies[i+1].name}({default_chain[notifies[i+1].chain]}, {notifies[i+1].platform})'
                 else:
-                    title2 = f'{notifies[i+1].name}({notifies[i+1].chain})'
+                    title2 = f'{notifies[i+1].name}({default_platform[notifies[i+1].chain]})'
                 call_back2 = f'N_DA_{notifies[i+1].notify_id}'
                 keyboard.append([InlineKeyboardButton(title1, callback_data=call_back1), InlineKeyboardButton(title2, callback_data=call_back2)])
             except:

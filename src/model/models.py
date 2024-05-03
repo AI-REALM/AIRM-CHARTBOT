@@ -13,6 +13,7 @@ class User(Base):
 
     id = Column(BigInteger, primary_key=True, index=True)
     premium = Column(Boolean, default=False, nullable=False)
+    invoice = Column(BigInteger, nullable=True, unique=True)
     premium_date = Column(Date, nullable=True)
     indicators = Column(String, nullable=True)
     interval = Column(String, nullable=False)
@@ -20,7 +21,6 @@ class User(Base):
     timezone = Column(String, nullable=False)
     chain = Column(String, nullable=False)
     status = Column(String, nullable=False)
-
 
 class Notify(Base):
     __tablename__ = "notify"

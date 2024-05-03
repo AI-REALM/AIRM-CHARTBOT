@@ -457,30 +457,39 @@ async def i_select_platform(message: Update.message, context: ContextTypes.DEFAU
         )
 
 async def i_cx_final_response(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, interval:str, indicators:str, style:str) -> None:
-    symbol = chain_info["market_pair_base"]["exchange_symbol"]
-    market_id = chain_info["market_id"]
-    await message.edit_text(f'Generating chart for `{symbol}` on {chain_info["exchange"]["name"]} for {interval} period', parse_mode=ParseMode.MARKDOWN)
+    quotes = 0
+    main_chain = 0
+    for chain in chain_info:
+        if quotes < chain["quote"]["USD"]["price"]:
+            quotes = chain["quote"]["USD"]["price"]
+            main_chain = chain
     
-    detailed_info = get_detailed_info(symbol=symbol)
+    symbol = main_chain["market_pair_base"]["exchange_symbol"]
+    crypto_id = main_chain["market_pair_base"]["currency_id"]
+    exchange_slug = main_chain["exchange"]["slug"]
+    await message.edit_text(f'Generating chart for `{symbol}` on {main_chain["exchange"]["name"]} for {interval} period', parse_mode=ParseMode.MARKDOWN)
+    
+    detailed_info = get_detailed_info(id=crypto_id)
     if type(detailed_info) == str:
-        log_function(log_type="i_CX", chat_id=message.chat_id, chain_id=symbol, chain_address=chain_info["exchange"]["name"], result=f'{detailed_info}')
-        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Info CX', user_input=f'`{symbol}`, `{chain_info["exchange"]["name"]}`', result=f'{detailed_info}')
+        log_function(log_type="i_CX", chat_id=message.chat_id, chain_id=symbol, chain_address=main_chain["exchange"]["name"], result=f'{detailed_info}')
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Info CX', user_input=f'`{symbol}`, `{main_chain["exchange"]["name"]}`', result=f'{detailed_info}')
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
         return None
     
-    price = round(chain_info["quote"]["USD"]["price"], 3)
-    volume_24h = round(chain_info["quote"]["USD"]["volume_24h"],3)
+    price = round(main_chain["quote"]["USD"]["price"], 3)
+    volume_24h = round(main_chain["quote"]["USD"]["volume_24h"],3)
     market_cap = round(detailed_info["quote"]["USD"]["market_cap"],3)
 
     keyboard = []
-    keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'i_CX_{symbol}_{market_id}_{interval}'))
-    keyboard.append(InlineKeyboardButton(text="📈", callback_data=f'chart_CX_{symbol}_{market_id}_{interval}'))
+    keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'i_CX_{crypto_id}_{exchange_slug}_{interval}'))
+    keyboard.append(InlineKeyboardButton(text="📈", callback_data=f'chart_CX_{crypto_id}_{exchange_slug}_{interval}'))
     reply_markup = InlineKeyboardMarkup([keyboard])
     await message.edit_text(
         text=f'📌 Project: {detailed_info["name"]}/{symbol}\n'
         f'🗓️ Create Date: {detailed_info["date_added"].split("T")[0].replace(" ", "-")}\n\n'
+        f'🏦 Exchange: {main_chain["exchange"]["name"]}\n\n'
         f'💰 Price USD: ${"{:,}".format(price)}\n'
         f'💵 Market cap: ${"{:,}".format(market_cap)}\n'
         f'🪙 Supply: Total: {format_number(detailed_info["total_supply"])} / Circ: {format_number(detailed_info["circulating_supply"])}\n\n'
@@ -489,43 +498,33 @@ async def i_cx_final_response(message: Update.message, context: ContextTypes.DEF
         reply_markup=reply_markup,
         disable_web_page_preview=True
     )
-    log_function(log_type="i_CX", chat_id=message.chat_id, chain_id=symbol, chain_address=chain_info["exchange"]["name"], result="successful")
+    log_function(log_type="i_CX", chat_id=message.chat_id, chain_id=symbol, chain_address=main_chain["exchange"]["name"], result="successful")
 
-async def i_cx_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:
-    exchanges = {}
-    for i in chain_info:
-        exchange_name = i["exchange"]["slug"]
-        if exchange_name in exchanges:
-            exchanges[exchange_name].append(i)
-        else:
-            exchanges[exchange_name] = [i]
-    
+async def i_cx_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:    
     keyboard = []
-    keys = list(exchanges.keys())
+    print(chain_info)
+    keys = list(chain_info.keys())
     back_button_flag=True
-    if len(keys) == 1:
-        await i_cx_final_response(message=message, context=context, chain_info=exchanges[keys[0]][0], interval=interval, indicators=indicators, style=style)
-    else:
-        for i in range(0, len(keys), 3):
-            rows = []
-            for y in range(0,3):
-                try:
-                    title = f'{exchanges[keys[i+y]][0]["exchange"]["name"]}'
-                    call_back = f'i_CX_{exchanges[keys[i+y]][0]["market_pair_base"]["exchange_symbol"]}_{exchanges[keys[i+y]][0]["market_id"]}_{interval}'
-                    rows.append(InlineKeyboardButton(title, callback_data=call_back))
-                except:
-                    rows.append(InlineKeyboardButton("✖ Close", callback_data='i_close'))
-                    back_button_flag=False
-                    break
-            keyboard.append(rows)
-        if back_button_flag:
-            keyboard.append([InlineKeyboardButton("✖ Close", callback_data='i_close')])
-        
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await message.edit_text(
-            "Which exchange would you like to use?", reply_markup=reply_markup
-        )
+    for i in range(0, len(keys), 3):
+        rows = []
+        for y in range(0,3):
+            try:
+                title = f'{chain_info[keys[i+y]][0]["exchange"]["name"]}'
+                call_back = f'i_CX_{chain_info[keys[i+y]][0]["market_pair_base"]["currency_id"]}_{chain_info[keys[i+y]][0]["exchange"]["slug"]}_{interval}'
+                rows.append(InlineKeyboardButton(title, callback_data=call_back))
+            except:
+                rows.append(InlineKeyboardButton("✖ Close", callback_data='i_close'))
+                back_button_flag=False
+                break
+        keyboard.append(rows)
+    if back_button_flag:
+        keyboard.append([InlineKeyboardButton("✖ Close", callback_data='i_close')])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await message.edit_text(
+        "Which exchange would you like to use?", reply_markup=reply_markup
+    )
 
 async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)->None:
     message = update.callback_query.message
@@ -583,8 +582,9 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
             name, info = cex_info_symbol_market_pair(symbol=user_input)
             
             if type(info) != str:
-                if len(info) == 1:
-                    await i_cx_final_response(message=sent_message, context=context, chain_info=info[0], interval=user.interval, style=user.style)
+                key = list(info.keys())
+                if len(key) == 1:
+                    await i_cx_final_response(message=sent_message, context=context, chain_info=info[key[0]], interval=user.interval, style=user.style)
                 else:
                     # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
                     await i_cx_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
@@ -596,16 +596,16 @@ async def i_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)-
                 await sent_message.delete()
         else:
             chain_symbol = text.split("_")[2]
-            market_pair = int(text.split("_")[3])
+            market_pair = text.split("_")[3]
             interval = text.split("_")[4]
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
             if not user:
                 user = create_user(chat_id)
             await message.delete()
-            info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
-            if type(info) != str:
-                sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
+            info = cex_exact_info(symbol=int(chain_symbol), market_pair=market_pair)
+            if type(info) != str and info != None:
+                sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info[0]["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
                 await i_cx_final_response(message=sent_message, context=context, chain_info=info, interval=interval, indicators=user.indicators, style=user.style)
             else:
                 log_function(log_type="info_cx", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result=f"{info}")
@@ -728,10 +728,16 @@ async def chart_select_platform(message: Update.message, context: ContextTypes.D
 
 async def chart_cx_final_response(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, interval:str, indicators:str, style:str) -> None:
     file_path = "cex_chart.png"
-    symbol = chain_info["market_pair_base"]["exchange_symbol"]
-    exchange = chain_info["exchange"]["slug"]
-    market_id = chain_info["market_id"]
-    await message.edit_text(f'Generating chart for `{symbol}` on {chain_info["exchange"]["name"]} for {interval} period', parse_mode=ParseMode.MARKDOWN)
+    quotes = 0
+    main_chain = 0
+    for chain in chain_info:
+        if quotes < chain["quote"]["USD"]["price"]:
+            quotes = chain["quote"]["USD"]["price"]
+            main_chain = chain
+    symbol = main_chain["market_pair_base"]["exchange_symbol"]
+    crypto_id = main_chain["market_pair_base"]["currency_id"]
+    exchange_slug = main_chain["exchange"]["slug"]
+    await message.edit_text(f'Generating chart for `{symbol}` on {main_chain["exchange"]["name"]} for {interval} period', parse_mode=ParseMode.MARKDOWN)
     now = datetime.now()
     user_interval = ""
     period = ""
@@ -751,12 +757,10 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
         start = now - timedelta(days=90)
         user_interval = 1440
         period = "daily"
-    
-    picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
-    running, picture = get_picture_cex(exchange=exchange, chain=symbol, file_path=file_path, style=style, indicators=indicators, interval=user_interval)
+    running, picture = get_picture_cex(exchange=main_chain["exchange"]["name"], chain=main_chain["market_pair"].replace("/", ""), file_path=file_path, style=style, indicators=indicators, interval=user_interval)
     if running == False:
-        log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="Failed in CEX Chart Generation")
-        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Cex',user_input=f'`{symbol}`, `{exchange}`', result_code='Failed in CEX Chart Generation')
+        log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange_slug, result="Failed in CEX Chart Generation")
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Chart Cex',user_input=f'`{symbol}`, `{exchange_slug}`', result_code='Failed in CEX Chart Generation')
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
@@ -765,8 +769,8 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
     keyboard = []
     if picture:
         keyboard.append(InlineKeyboardButton(text="👁 TA", callback_data=f'ta_{picture}'))
-    keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'chart_CX_{symbol}_{market_id}_{interval}'))
-    keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_CX_{symbol}_{market_id}_{interval}'))
+    keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'chart_CX_{crypto_id}_{exchange_slug}_{interval}'))
+    keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_CX_{crypto_id}_{exchange_slug}_{interval}'))
     reply_markup = InlineKeyboardMarkup([keyboard])
     await message.delete()
     with open(file_path, 'rb') as f:
@@ -775,43 +779,32 @@ async def chart_cx_final_response(message: Update.message, context: ContextTypes
             chat_id=message.chat_id,
             reply_markup=reply_markup
         )
-        log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="successful")
+        log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange_slug, result="successful")
 
 async def chart_cx_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:
-    exchanges = {}
-    for i in chain_info:
-        exchange_name = i["exchange"]["slug"]
-        if exchange_name in exchanges:
-            exchanges[exchange_name].append(i)
-        else:
-            exchanges[exchange_name] = [i]
-    
     keyboard = []
-    keys = list(exchanges.keys())
+    keys = list(chain_info.keys())
     back_button_flag=True
-    if len(keys) == 1:
-        await chart_cx_final_response(message=message, context=context, chain_info=exchanges[keys[0]][0], interval=interval, indicators=indicators, style=style)
-    else:
-        for i in range(0, len(keys), 3):
-            rows = []
-            for y in range(0,3):
-                try:
-                    title = f'{exchanges[keys[i+y]][0]["exchange"]["name"]}'
-                    call_back = f'chart_CX_{exchanges[keys[i+y]][0]["market_pair_base"]["exchange_symbol"]}_{exchanges[keys[i+y]][0]["market_id"]}_{interval}'
-                    rows.append(InlineKeyboardButton(title, callback_data=call_back))
-                except:
-                    rows.append(InlineKeyboardButton("✖ Close", callback_data='chart_close'))
-                    back_button_flag=False
-                    break
-            keyboard.append(rows)
-        if back_button_flag:
-            keyboard.append([InlineKeyboardButton("✖ Close", callback_data='chart_close')])
-        
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await message.edit_text(
-            "Which exchange would you like to use?", reply_markup=reply_markup
-        )
+    for i in range(0, len(keys), 3):
+        rows = []
+        for y in range(0,3):
+            try:
+                title = f'{chain_info[keys[i+y]][0]["exchange"]["name"]}'
+                call_back = f'chart_CX_{chain_info[keys[i+y]][0]["market_pair_base"]["currency_id"]}_{chain_info[keys[i+y]][0]["exchange"]["slug"]}_{interval}'
+                rows.append(InlineKeyboardButton(title, callback_data=call_back))
+            except:
+                rows.append(InlineKeyboardButton("✖ Close", callback_data='chart_close'))
+                back_button_flag=False
+                break
+        keyboard.append(rows)
+    if back_button_flag:
+        keyboard.append([InlineKeyboardButton("✖ Close", callback_data='chart_close')])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await message.edit_text(
+        "Which exchange would you like to use?", reply_markup=reply_markup
+    )
 
 async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)->None:
     message = update.callback_query.message
@@ -873,8 +866,9 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
             name, info = cex_info_symbol_market_pair(symbol=user_input)
             
             if type(info) != str:
-                if len(info) == 1:
-                    await chart_cx_final_response(message=sent_message, context=context, chain_info=info[0], interval=user.interval, indicators=user.indicators, style=user.style)
+                key = list(info.keys())
+                if len(key) == 1:
+                    await chart_cx_final_response(message=sent_message, context=context, chain_info=info[key[0]], interval=user.interval, indicators=user.indicators, style=user.style)
                 else:
                     # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
                     await chart_cx_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
@@ -887,16 +881,16 @@ async def chart_callback_handle(update: Update, context: ContextTypes.DEFAULT_TY
                 # sent_message.reply_photo()
         else:
             chain_symbol = text.split("_")[2]
-            market_pair = int(text.split("_")[3])
+            market_pair = text.split("_")[3]
             interval = text.split("_")[4]
             chat_id = message.chat_id
             user = get_user_by_id(chat_id)
             if not user:
                 user = create_user(chat_id)
             await message.delete()
-            info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
-            if type(info) != str:
-                sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
+            info = cex_exact_info(symbol=int(chain_symbol), market_pair=market_pair)
+            if type(info) != str and info != None:
+                sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info[0]["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
                 await chart_cx_final_response(message=sent_message, context=context, chain_info=info, interval=interval, indicators=user.indicators, style=user.style)
             else:
                 log_function(log_type="chart_cx", chat_id=message.chat_id, chain_id=user.chain, chain_address=user_input, result=f'{info}')
@@ -999,8 +993,9 @@ async def cx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     name, info = cex_info_symbol_market_pair(symbol=user_input)
     
     if type(info) != str:
-        if len(info) == 1:
-            await cx_final_response(message=sent_message, context=context, chain_info=info[0], interval=user.interval, style=user.style)
+        key = list(info.keys())
+        if len(key) == 1:
+            await cx_final_response(message=sent_message, context=context, chain_info=info[key[0]], interval=user.interval, style=user.style)
         else:
             # await sent_message.edit_text(f'⚠ There isn\'t info of {user_input} on {user.chain}. So researching on {chain_name}.')
             await cx_select_platform(message=sent_message, context=context, chain_info=info, user_input=user_input, interval=user.interval, indicators=user.indicators, style=user.style)
@@ -1014,10 +1009,16 @@ async def cx_handle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def cx_final_response(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, interval:str, indicators:str, style:str) -> None:
     file_path = "cex_chart.png"
-    symbol = chain_info["market_pair_base"]["exchange_symbol"]
-    exchange = chain_info["exchange"]["slug"]
-    market_id = chain_info["market_id"]
-    await message.edit_text(f'Generating chart for `{symbol}` on {chain_info["exchange"]["name"]} for {interval} period', parse_mode=ParseMode.MARKDOWN)
+    quotes = 0
+    main_chain = 0
+    for chain in chain_info:
+        if quotes < chain["quote"]["USD"]["price"]:
+            quotes = chain["quote"]["USD"]["price"]
+            main_chain = chain
+    symbol = main_chain["market_pair_base"]["exchange_symbol"]
+    exchange_slug = main_chain["exchange"]["slug"]
+    crypto_id = main_chain["market_pair_base"]["currency_id"]
+    await message.edit_text(f'Generating chart for `{symbol}` on {main_chain["exchange"]["name"]} for {interval} period', parse_mode=ParseMode.MARKDOWN)
     now = datetime.now()
     user_interval = ""
     period = ""
@@ -1037,24 +1038,24 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
         start = now - timedelta(days=90)
         user_interval = 1440
         period = "daily"
-    exchange = i["exchange"]["slug"]
-    running, picture = get_picture_cex(exchange=exchange, chain=symbol, file_path=file_path, style=style, indicators=indicators, interval=user_interval)
-    detailed_info = get_detailed_info(symbol=symbol)
+    exchange_name = main_chain["exchange"]["name"]
+    running, picture = get_picture_cex(exchange=exchange_name, chain=main_chain["market_pair"].replace("/", ""), file_path=file_path, style=style, indicators=indicators, interval=user_interval)
+    detailed_info = get_detailed_info(id=crypto_id)
     # picture = cex_historical_info(symbol=symbol, time_start=start.strftime("%Y-%m-%dT%H:%M:%S"), time_end=now.strftime("%Y-%m-%dT%H:%M:%S"), interval=user_interval, period=period, file_path=file_path, style=style)
     if running == False or type(detailed_info) == str:
         if type(detailed_info) == str:
-            log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result=f'{detailed_info}')
-            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{symbol}`, `{exchange}`', result_code=f'{detailed_info}')
+            log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange_slug, result=f'{detailed_info}')
+            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{symbol}`, `{exchange_slug}`', result_code=f'{detailed_info}')
         else:
-            log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="Failed in CEX chart Generation")
-            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{symbol}`, `{exchange}`', result_code="Failed in CEX chart Generation")
+            log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange_slug, result="Failed in CEX chart Generation")
+            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='CX Chart', user_input=f'`{symbol}`, `{exchange_slug}`', result_code="Failed in CEX chart Generation")
         await message.edit_text(f'❌ This symbol {symbol} you entered is either not available on supported exchanges or could not be matched to a project by our search algorithm. Please contact me directly @fieryfox617',parse_mode=ParseMode.MARKDOWN)
         await asyncio.sleep(5)
         await message.delete()
         return None
     
-    price = round(chain_info["quote"]["USD"]["price"], 3)
-    volume_24h = round(chain_info["quote"]["USD"]["volume_24h"],3)
+    price = round(main_chain["quote"]["USD"]["price"], 3)
+    volume_24h = round(main_chain["quote"]["USD"]["volume_24h"],3)
     
     market_cap = round(detailed_info["quote"]["USD"]["market_cap"],3)
 
@@ -1062,13 +1063,13 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
     times = ['5m','1h','6h','1D']
     for i in times:
         if i == interval:
-            interval_keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'cx_{symbol}_{market_id}_{i}'))
+            interval_keyboard.append(InlineKeyboardButton(text="🔄", callback_data=f'cx_{crypto_id}_{exchange_slug}_{i}'))
         else:
-            interval_keyboard.append(InlineKeyboardButton(text=i, callback_data=f'cx_{symbol}_{market_id}_{i}'))
+            interval_keyboard.append(InlineKeyboardButton(text=i, callback_data=f'cx_{crypto_id}_{exchange_slug}_{i}'))
     ta_i_keyboard = []
     if picture:
         ta_i_keyboard.append(InlineKeyboardButton(text="👁 TA", callback_data=f'ta_{picture}'))
-    ta_i_keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_CX_{symbol}_{market_id}_{i}'))
+    ta_i_keyboard.append(InlineKeyboardButton(text="ℹ", callback_data=f'i_CX_{crypto_id}_{exchange_slug}_{i}'))
     reply_markup = InlineKeyboardMarkup([interval_keyboard, ta_i_keyboard])
     await message.delete()
     with open(file_path, 'rb') as f:
@@ -1079,43 +1080,32 @@ async def cx_final_response(message: Update.message, context: ContextTypes.DEFAU
             parse_mode=ParseMode.HTML,
             reply_markup=reply_markup
         )
-        log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange, result="successful")
+        log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=symbol, chain_address=exchange_slug, result="successful")
 
 async def cx_select_platform(message: Update.message, context: ContextTypes.DEFAULT_TYPE, chain_info:dict, user_input:str, interval:str, indicators:str, style:str) ->None:
-    exchanges = {}
-    for i in chain_info:
-        exchange_name = i["exchange"]["slug"]
-        if exchange_name in exchanges:
-            exchanges[exchange_name].append(i)
-        else:
-            exchanges[exchange_name] = [i]
-    
     keyboard = []
-    keys = list(exchanges.keys())
+    keys = list(chain_info.keys())
     back_button_flag=True
-    if len(keys) == 1:
-        await cx_final_response(message=message, context=context, chain_info=exchanges[keys[0]][0], interval=interval, indicators=indicators, style=style)
-    else:
-        for i in range(0, len(keys), 3):
-            rows = []
-            for y in range(0,3):
-                try:
-                    title = f'{exchanges[keys[i+y]][0]["exchange"]["name"]}'
-                    call_back = f'cx_{exchanges[keys[i+y]][0]["market_pair_base"]["exchange_symbol"]}_{exchanges[keys[i+y]][0]["market_id"]}_{interval}'
-                    rows.append(InlineKeyboardButton(title, callback_data=call_back))
-                except:
-                    rows.append(InlineKeyboardButton("✖ Close", callback_data='cx_close'))
-                    back_button_flag=False
-                    break
-            keyboard.append(rows)
-        if back_button_flag:
-            keyboard.append([InlineKeyboardButton("✖ Close", callback_data='cx_close')])
-        
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await message.edit_text(
-            "Which exchange would you like to use?", reply_markup=reply_markup
-        )
+    for i in range(0, len(keys), 3):
+        rows = []
+        for y in range(0,3):
+            try:
+                title = f'{chain_info[keys[i+y]][0]["exchange"]["name"]}'
+                call_back = f'cx_{chain_info[keys[i+y]][0]["market_pair_base"]["currency_id"]}_{chain_info[keys[i+y]][0]["exchange"]["slug"]}_{interval}'
+                rows.append(InlineKeyboardButton(title, callback_data=call_back))
+            except:
+                rows.append(InlineKeyboardButton("✖ Close", callback_data='cx_close'))
+                back_button_flag=False
+                break
+        keyboard.append(rows)
+    if back_button_flag:
+        keyboard.append([InlineKeyboardButton("✖ Close", callback_data='cx_close')])
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await message.edit_text(
+        "Which exchange would you like to use?", reply_markup=reply_markup
+    )
 
 async def cx_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)->None:
     message = update.callback_query.message
@@ -1124,16 +1114,16 @@ async def cx_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if chain_symbol == "close":
         await message.delete()
     else:
-        market_pair = int(text.split("_")[2])
+        market_pair = text.split("_")[2]
         interval = text.split("_")[3]
         chat_id = message.chat_id
         user = get_user_by_id(chat_id)
         if not user:
             user = create_user(chat_id)
         await message.delete()
-        info = cex_exact_info(symbol=chain_symbol, market_pair=market_pair)
+        info = cex_exact_info(symbol=int(chain_symbol), market_pair=market_pair)
         if type(info) != str:
-            sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
+            sent_message = await context.bot.send_message(text= f'Searching info of `{chain_symbol}` on {info[0]["exchange"]["name"]} for {interval} period', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
             await cx_final_response(message=sent_message, context=context, chain_info=info, interval=interval, indicators=user.indicators, style=user.style)
         else:
             log_function(log_type="cx_chart", chat_id=message.chat_id, chain_id=user.chain, chain_address=chain_symbol, result=f'{info}')
@@ -1145,18 +1135,33 @@ async def cx_callback_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
 async def ta_handle(update: Update, context: ContextTypes.DEFAULT_TYPE)->None:
     message = update.callback_query.message
-    text = update.callback_query.data
-    chart_url = text.split("_")[1]
-    await message.delete()
-    send_message = await context.bot.send_message(text= f'🧠⏳️ Analyzing chart image, this might take a few moments. Please wait...', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
-    
-    info = ta_response(chart_url=chart_url)
-    if info:
-        await send_message.edit_text(text= f'{info}', parse_mode=ParseMode.HTML, disable_web_page_preview=True)
-        log_function(log_type="ta", chat_id=message.chat_id, chain_id="", chain_address=chart_url, result=f'successful') 
+    if message.photo:
+        # Access the last (highest quality) photo version
+        file_id = message.photo[-1].file_id
+        # Use await for the asynchronous get_file method
+        file_photo = await context.bot.get_file(file_id=file_id)
+        # Printing details - for debugging purposes
+        photo_path = file_photo.file_path
     else:
-        log_function(log_type="ta", chat_id=message.chat_id, chain_id="", chain_address=chart_url, result=f'Failed in analysis')
-        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Technial Analysis', user_input=f'`{chart_url}`', result_code=f'Failed in analysis')
+        photo_path = False
+    if photo_path:
+        await update.callback_query.edit_message_caption(caption=None, reply_markup=None)
+        send_message = await context.bot.send_message(text= f'🧠⏳️ Analyzing chart image, this might take a few moments. Please wait...', chat_id=message.chat_id, parse_mode=ParseMode.MARKDOWN)
+        
+        info = ta_response(image_url=photo_path)
+        if info:
+            await send_message.edit_text(text= f'{info}', parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+            log_function(log_type="ta", chat_id=message.chat_id, chain_id="", chain_address=photo_path, result=f'successful') 
+        else:
+            log_function(log_type="ta", chat_id=message.chat_id, chain_id="", chain_address=photo_path, result=f'Failed in analysis of chart')
+            await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Technial Analysis', user_input=f'`{photo_path}`', result_code=f'Failed in analysis')
+            await send_message.edit_text(text= f'❌ Technical analysis has failed on this chart. This may be due to an internal error or the chart does not have enough information to be analysed. If you need more details please contact me directly @fieryfox617', parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+            await asyncio.sleep(5)
+            await send_message.delete()
+            return None
+    else:
+        log_function(log_type="ta", chat_id=message.chat_id, chain_id="", chain_address="", result=f'Failed in screenshot of chart')
+        await admin_notify(context=context, admin_chat_id=admin, user_chat_id=message.chat_id, rquest_type='Technial Analysis', user_input=f'`{photo_path}`', result_code=f'Failed in analysis')
         await send_message.edit_text(text= f'❌ Technical analysis has failed on this chart. This may be due to an internal error or the chart does not have enough information to be analysed. If you need more details please contact me directly @fieryfox617', parse_mode=ParseMode.HTML, disable_web_page_preview=True)
         await asyncio.sleep(5)
         await send_message.delete()

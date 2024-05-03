@@ -1,0 +1,236 @@
+[
+  {
+    "exchange": {
+      "id": 270,
+      "name": "Binance",
+      "slug": "binance"
+    },
+    "outlier_detected": 0,
+    "exclusions": null,
+    "market_pair_base": {
+      "exchange_symbol": "SOL",
+      "currency_symbol": "SOL",
+      "currency_id": 5426,
+      "currency_type": "cryptocurrency"
+    },
+    "market_pair_quote": {
+      "exchange_symbol": "USDT",
+      "currency_symbol": "USDT",
+      "currency_id": 825,
+      "currency_type": "cryptocurrency"
+    },
+    "quote": {
+      "exchange_reported": {
+        "price": 140.022,
+        "volume_24h_base": 22991457.69648341,
+        "volume_24h_quote": 3219309889.577,
+        "last_updated": "2024-05-03T04:47:58.000Z"
+      },
+      "USD": {
+        "price": 140.05555936,
+        "volume_24h": 3219677390.150312,
+        "last_updated": "2024-05-03T04:47:58.000Z"
+      }
+    },
+    "market_id": 67944,
+    "market_pair": "SOL/USDT",
+    "category": "derivatives",
+    "fee_type": "percentage"
+  },
+  {
+    "exchange": {
+      "id": 270,
+      "name": "Binance",
+      "slug": "binance"
+    },
+    "outlier_detected": 0,
+    "exclusions": null,
+    "market_pair_base": {
+      "exchange_symbol": "SOL",
+      "currency_symbol": "SOL",
+      "currency_id": 5426,
+      "currency_type": "cryptocurrency"
+    },
+    "market_pair_quote": {
+      "exchange_symbol": "USDT",
+      "currency_symbol": "USDT",
+      "currency_id": 825,
+      "currency_type": "cryptocurrency"
+    },
+    "quote": {
+      "exchange_reported": {
+        "price": 139.97,
+        "volume_24h_base": 5306423.52738637,
+        "volume_24h_quote": 742740101.12827,
+        "last_updated": "2024-05-03T04:47:17.000Z"
+      },
+      "USD": {
+        "price": 139.98522298,
+        "volume_24h": 742912816.1427737,
+        "depth_negative_two": 6753049.34495807,
+        "depth_positive_two": 4983236.93217049,
+        "last_updated": "2024-05-03T04:47:17.000Z"
+      }
+    },
+    "market_id": 56570,
+    "market_pair": "SOL/USDT",
+    "category": "spot",
+    "fee_type": "percentage"
+  },
+  {
+    "exchange": {
+      "id": 270,
+      "name": "Binance",
+      "slug": "binance"
+    },
+    "outlier_detected": 0,
+    "exclusions": null,
+    "market_pair_base": {
+      "exchange_symbol": "SOL",
+      "currency_symbol": "SOL",
+      "currency_id": 5426,
+      "currency_type": "cryptocurrency"
+    },
+    "market_pair_quote": {
+      "exchange_symbol": "USD",
+      "currency_symbol": "USD",
+      "currency_id": 2781,
+      "currency_type": "fiat"
+    },
+    "quote": {
+      "exchange_reported": {
+        "price": 140.069,
+        "volume_24h_base": 2393677.83021225,
+        "volume_24h_quote": 335280060,
+        "last_updated": "2024-05-03T04:47:58.000Z"
+      },
+      "USD": {
+        "price": 140.1024661,
+        "volume_24h": 335280060,
+        "last_updated": "2024-05-03T04:47:58.000Z"
+      }
+    },
+    "market_id": 186933,
+    "market_pair": "SOL/USD",
+    "category": "derivatives",
+    "fee_type": "percentage"
+  },
+  {
+    "exchange": {
+      "id": 270,
+      "name": "Binance",
+      "slug": "binance"
+    },
+    "outlier_detected": 0,
+    "exclusions": null,
+    "market_pair_base": {
+      "exchange_symbol": "SOL",
+      "currency_symbol": "SOL",
+      "currency_id": 5426,
+      "currency_type": "cryptocurrency"
+    },
+    "market_pair_quote": {
+      "exchange_symbol": "USDC",
+      "currency_symbol": "USDC",
+      "currency_id": 3408,
+      "currency_type": "cryptocurrency"
+    },
+    "quote": {
+      "exchange_reported": {
+        "price": 140.002,
+        "volume_24h_base": 1978064.97940744,
+        "volume_24h_quote": 276933053.247,
+        "last_updated": "2024-05-03T04:46:58.000Z"
+      },
+      "USD": {
+        "price": 140.04437708,
+        "volume_24h": 276967951.705208,
+        "last_updated": "2024-05-03T04:46:58.000Z"
+      }
+    },
+    "market_id": 1296681,
+    "market_pair": "SOL/USDC",
+    "category": "derivatives",
+    "fee_type": "percentage"
+  },
+  {
+    "exchange": {
+      "id": 270,
+      "name": "Binance",
+      "slug": "binance"
+    },
+    "outlier_detected": 0,
+    "exclusions": null,
+    "market_pair_base": {
+      "exchange_symbol": "SOL",
+      "currency_symbol": "SOL",
+      "currency_id": 5426,
+      "currency_type": "cryptocurrency"
+    },
+    "market_pair_quote": {
+      "exchange_symbol": "FDUSD",
+      "currency_symbol": "FDUSD",
+      "currency_id": 26081,
+      "currency_type": "cryptocurrency"
+    },
+    "quote": {
+      "exchange_reported": {
+        "price": 140.05,
+        "volume_24h_base": 1866989.87379243,
+        "volume_24h_quote": 261471931.82463,
+        "last_updated": "2024-05-03T04:47:17.000Z"
+      },
+      "USD": {
+        "price": 139.97644556,
+        "volume_24h": 261457525.6621003,
+        "depth_negative_two": 1363939.73467519,
+        "depth_positive_two": 1282115.06363452,
+        "last_updated": "2024-05-03T04:47:17.000Z"
+      }
+    },
+    "market_id": 1269689,
+    "market_pair": "SOL/FDUSD",
+    "category": "spot",
+    "fee_type": "percentage"
+  },
+  {
+    "exchange": {
+      "id": 270,
+      "name": "Binance",
+      "slug": "binance"
+    },
+    "outlier_detected": 0,
+    "exclusions": null,
+    "market_pair_base": {
+      "exchange_symbol": "SOL",
+      "currency_symbol": "SOL",
+      "currency_id": 5426,
+      "currency_type": "cryptocurrency"
+    },
+    "market_pair_quote": {
+      "exchange_symbol": "BTC",
+      "currency_symbol": "BTC",
+      "currency_id": 1,
+      "currency_type": "cryptocurrency"
+    },
+    "quote": {
+      "exchange_reported": {
+        "price": 0.0023505,
+        "volume_24h_base": 239558.72762816,
+        "volume_24h_quote": 563.08278929,
+        "last_updated": "2024-05-03T04:47:17.000Z"
+      },
+      "USD": {
+        "price": 140.0815268,
+        "volume_24h": 33561322.47864406,
+        "depth_negative_two": 2107009.40097876,
+        "depth_positive_two": 1141083.86515501,
+        "last_updated": "2024-05-03T04:47:17.000Z"
+      }
+    },
+    "market_id": 48905,
+    "market_pair": "SOL/BTC",
+    "category": "spot",
+    "fee_type": "percentage"
+  }
+]

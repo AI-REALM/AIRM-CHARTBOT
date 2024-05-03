@@ -104,6 +104,28 @@ default_con_type = {
   'C': 'Change'
 }
 
+default_platform = {
+    "bybit":"Bybit",
+    "okx":"OKX",
+    "gate-io":"Gate.io",
+    "coinbase-exchange":"Coinbase Exchange",
+    "upbit":"Upbit",
+    "bitget":"Bitget",
+    "kucoin":"KuCoin",
+    "bitflyer":"bitFlyer",
+    "gemini":"Gemini",
+    "exmo":"EXMO",
+    "whitebit":"WhiteBIT",
+    "bitrue":"Bitrue",
+    "poloniex":"Poloniex",
+    "bitmart":"BitMart",
+    "bithumb":"Bithumb",
+    "bitfinex":"Bitfinex",
+    "kraken":"Kraken",
+    "BingX":"BingX",
+    "binance":"Binance"
+}
+
 def escape_special_characters(text):
     # Define the pattern for special characters that need to be escaped
     pattern = r'(\\|\[|\]|\(|\)|~|>|#|\+|-|=|\||\{|\}|\.|!)'
@@ -133,8 +155,10 @@ def get_exact_name_symbol(symbol:str):
             keyboard.append([InlineKeyboardButton(title1, callback_data=call_back1)])
     keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_A_{symbol}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    return reply_markup
+    if cryptos:
+        return True, reply_markup
+    else:
+        return False, reply_markup
 
 def get_exact_basic_chain(name:str, symbol:str):
     info = get_token_chain_symbol(chain=symbol)
@@ -187,31 +211,28 @@ def get_exact_platform(name:str, symbol:str, chain:str):
 
 def get_extract_exchange_symbol(symbol:str):
     name, info = cex_info_symbol_market_pair(symbol=symbol)
-    exchanges = {}
-    for i in info:
-        exchange_name = i["exchange"]["slug"]
-        if exchange_name in exchanges:
-            exchanges[exchange_name].append(i)
-        else:
-            exchanges[exchange_name] = [i]
-    
     keyboard = []
-    keys = list(exchanges.keys())
-    
-    for i in range(0, len(keys), 3):
-        rows = []
-        for y in range(0,3):
-            try:
-                title = f'{exchanges[keys[i+y]][0]["exchange"]["name"]}'
-                call_back = f'N_A_C_{name}_{exchanges[keys[i+y]][0]["market_pair_base"]["exchange_symbol"]}_{exchanges[keys[i+y]][0]["exchange"]["name"]}_{exchanges[keys[i+y]][0]["market_id"]}'
-                rows.append(InlineKeyboardButton(title, callback_data=call_back))
-            except:
-                break
-        keyboard.append(rows)
-    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_A_{exchanges[keys[0]][0]["market_pair_base"]["exchange_symbol"]}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    return reply_markup
+    if not name:
+        keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_A_{symbol}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        return False, reply_markup
+    else:        
+        keys = list(info.keys())
+        
+        for i in range(0, len(keys), 3):
+            rows = []
+            for y in range(0,3):
+                try:
+                    title = f'{info[keys[i+y]][0]["exchange"]["name"]}'
+                    call_back = f'N_A_C_{name[0]}_{info[keys[i+y]][0]["market_pair_base"]["exchange_symbol"]}_{info[keys[i+y]][0]["exchange"]["slug"]}_{name[1]}'
+                    rows.append(InlineKeyboardButton(title, callback_data=call_back))
+                except:
+                    break
+            keyboard.append(rows)
+        keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_A_{info[keys[0]][0]["market_pair_base"]["exchange_symbol"]}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        return True, reply_markup
     
 
 async def notification_details_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -233,7 +254,7 @@ async def notification_details_handler(update: Update, context: ContextTypes.DEF
     if notify.crypto_type == "D":
         reply_text = f'*{notify.name}*\n\n*Exchange Type:* DEX\n*Symbol:* {notify.symbol}\n*Chain:* {default_chain[notify.chain]}\n*DEX Platform*: {notify.platform}\n*Monitored Item:* {default_condition[notify.condition]} ({default_con_type[notify.con_type]})\n*Limited Value:* {notify.value}\n*Notification Type:* {'Telegram' if notify.notify_method == 'T' else 'Email'}\n'
     else:
-        reply_text = f'*{notify.name}*\n\n*Exchange Type:* CEX\n*Symbol:* {notify.symbol}\n*Exchange:* {notify.chain}\n*Monitored Item:* {default_condition[notify.condition]} ({default_con_type[notify.con_type]})\n*Limited Value:* {notify.value}\n*Notification Type:* {'Telegram' if notify.notify_method == 'T' else 'Email'}\n'
+        reply_text = f'*{notify.name}*\n\n*Exchange Type:* CEX\n*Symbol:* {notify.symbol}\n*Exchange:* {default_platform[notify.chain]}\n*Monitored Item:* {default_condition[notify.condition]} ({default_con_type[notify.con_type]})\n*Limited Value:* {notify.value}\n*Notification Type:* {'Telegram' if notify.notify_method == 'T' else 'Email'}\n'
     await message.edit_text(
         text= escape_special_characters(reply_text),
         reply_markup=reply_markup, 
@@ -269,7 +290,7 @@ async def notification_edit_calling_handler(update: Update, context: ContextType
         if notify.crypto_type == "D":
             reply_text = f'*Edit {notify.name} notification info*\n\n*Exchange Type:* DEX\n*Symbol:* {notify.symbol}\n*Chain:* {default_chain[notify.chain]}\n*DEX Platform*: {notify.platform}\n*Monitored Item:* {default_condition[notify.condition]} ({default_con_type[notify.con_type]})\n*Limited Value:* {notify.value}\n*Notification Type:* {'Telegram' if notify.notify_method == 'T' else 'Email'}\n'
         else:
-            reply_text = f'*Edit {notify.name} notification info*\n\n*Exchange Type:* CEX\n*Symbol:* {notify.symbol}\n*Exchange:* {notify.chain}\n*Monitored Item:* {default_condition[notify.condition]} ({default_con_type[notify.con_type]})\n*Limited Value:* {notify.value}\n*Notification Type:* {'Telegram' if notify.notify_method == 'T' else 'Email'}\n'
+            reply_text = f'*Edit {notify.name} notification info*\n\n*Exchange Type:* CEX\n*Symbol:* {notify.symbol}\n*Exchange:* {default_platform[notify.chain]}\n*Monitored Item:* {default_condition[notify.condition]} ({default_con_type[notify.con_type]})\n*Limited Value:* {notify.value}\n*Notification Type:* {'Telegram' if notify.notify_method == 'T' else 'Email'}\n'
         await message.edit_text(
             text= escape_special_characters(reply_text),
             reply_markup=reply_markup, 
@@ -339,17 +360,10 @@ async def notification_edit_calling_handler(update: Update, context: ContextType
         user = update_status(id=chat_id, status=f"N_E_{role}_{name}_{method}_{notify_id}_{message.message_id}")
         if name == 'C':
             keyboard = []
-            if method == "P":
-                keyboard.append([
-                    InlineKeyboardButton("More", callback_data=f'N_E_{role}_C_{method}_M_{int(notify_id)}'), 
-                    InlineKeyboardButton("Less", callback_data=f'N_E_{role}_C_{method}_L_{int(notify_id)}'),
-                    InlineKeyboardButton("Change", callback_data=f'N_E_{role}_C_{method}_C_{int(notify_id)}')
-                ])
-            else:
-                keyboard.append([
-                    InlineKeyboardButton("More", callback_data=f'N_E_{role}_C_{method}_M_{int(notify_id)}'), 
-                    InlineKeyboardButton("Less", callback_data=f'N_E_{role}_C_{method}_L_{int(notify_id)}')
-                ])
+            keyboard.append([
+                InlineKeyboardButton("More", callback_data=f'N_E_{role}_C_{method}_M_{int(notify_id)}'), 
+                InlineKeyboardButton("Less", callback_data=f'N_E_{role}_C_{method}_L_{int(notify_id)}')
+            ])
             reply_markup = InlineKeyboardMarkup(keyboard)
             reply_text = f'Select the condition type.'
             await message.edit_text(
@@ -478,8 +492,11 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
         symbol = commands[3]
         user = update_status(id=chat_id, status=f"N_A_{role}_{symbol}_{message.message_id}")
         if role == "D":
-            reply_markup = get_exact_name_symbol(symbol=symbol)
-            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Symbol:* {symbol}\n\nExactly what cryptocurrency do you want? Please check.             '
+            res, reply_markup = get_exact_name_symbol(symbol=symbol)
+            if res:
+                reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Symbol:* {symbol}\n\nExactly what cryptocurrency do you want? Please check.             '
+            else:
+                reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Symbol:* {symbol}\n\n❌This address you entered is either not available on supported exchanges or does not match a project in our search algorithm.'
             await message.edit_text(
                 text=escape_special_characters(reply_text),
                 reply_markup=reply_markup, 
@@ -487,8 +504,11 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
                 disable_web_page_preview=True
             )
         elif role == "C":
-            reply_markup = get_extract_exchange_symbol(symbol=symbol)
-            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Symbol:* {symbol}\n\nWhich exchange would you like to use?             '
+            res, reply_markup = get_extract_exchange_symbol(symbol=symbol)
+            if res:
+                reply_text = f'* Add New Alert & Notification❕ *\n\n*Exchange Type:* CEX\n*Symbol:* {symbol}\n\nWhich exchange would you like to use?             '
+            else:
+                reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Symbol:* {symbol}\n\n❌This address you entered is either not available on supported exchanges or does not match a project in our search algorithm.'
             await message.edit_text(
                 text=escape_special_characters(reply_text),
                 reply_markup=reply_markup, 
@@ -561,7 +581,7 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
             ])
             keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_A_C_{symbol}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
             reply_markup = InlineKeyboardMarkup(keyboard)
-            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Excahnge:* {chain}\n\nWhich item would you like to monitor?'
+            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {default_platform[chain]}\n\nWhich item would you like to monitor?'
             await message.edit_text(
                 text=escape_special_characters(reply_text),
                 reply_markup=reply_markup, 
@@ -577,7 +597,6 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
         condition = commands[7]
         user = update_status(id=chat_id, status=f"N_A_{role}_{name}_{symbol}_{chain}_{platform}_{condition}_{message.message_id}")
         keyboard = []
-        print(query)
         if condition == 'P':
             keyboard.append([
                 InlineKeyboardButton("More", callback_data=f'{query.data}_M'), 
@@ -594,7 +613,7 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
             reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Chain:* {default_chain[chain]}\n*DEX Platform*: {platform}\n*Monitored Item:* {default_condition[condition]}\n\nPlease select the conditions type.'
         else:
             keyboard.append([InlineKeyboardButton("🔙 Back", callback_data=f'N_A_C_{name}_{symbol}_{chain}_{platform}'), InlineKeyboardButton("✖ Cancel", callback_data='settings_notify')])
-            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {chain}\n*Monitored Item:* {default_condition[condition]}\n\nPlease select the conditions type.'
+            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {default_platform[chain]}\n*Monitored Item:* {default_condition[condition]}\n\nPlease select the conditions type.'
         reply_markup = InlineKeyboardMarkup(keyboard)
         await message.edit_text(
             text=escape_special_characters(reply_text),
@@ -617,7 +636,7 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
         if role == "D":
             reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Chain:* {default_chain[chain]}\n*DEX Platform*: {platform}\n*Monitored Item:* {default_condition[condition]} ({default_con_type[con_type]})\n\nPlease enter limit values for this condition.'
         else:
-            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {chain}\n*Monitored Item:* {default_condition[condition]} ({default_con_type[con_type]})\n\nPlease enter limit values for this condition.'
+            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {default_platform[chain]}\n*Monitored Item:* {default_condition[condition]} ({default_con_type[con_type]})\n\nPlease enter limit values for this condition.'
         await message.edit_text(
             text=escape_special_characters(reply_text),
             reply_markup=reply_markup, 
@@ -641,7 +660,7 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
         if role == "D":
             reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Chain:* {default_chain[chain]}\n*DEX Platform*: {platform}\n*Monitored Item:* {default_condition[condition]} ({default_con_type[con_type]})\n*Limited Value:* {value}\n\nPlease choose notification type.'
         else:
-            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {chain}\n*Monitored Item:* {default_condition[condition]} ({default_con_type[con_type]})\n*Limited Value:* {value}\n\nPlease choose notification type.'
+            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {default_platform[chain]}\n*Monitored Item:* {default_condition[condition]} ({default_con_type[con_type]})\n*Limited Value:* {value}\n\nPlease choose notification type.'
         await message.edit_text(
             text=escape_special_characters(reply_text),
             reply_markup=reply_markup, 
@@ -669,7 +688,7 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
         if role == "D":
             reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* DEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Chain:* {default_chain[chain]}\n*DEX Platform*: {platform}\n*Monitored Item:* {default_condition[condition]}\n*Limited Value:* {value}\n*Notification Type:* {'Telegram' if notify_type == 'T' else 'Email'}\n'
         else:
-            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {chain}\n*Monitored Item:* {default_condition[condition]}\n*Limited Value:* {value}\n*Notification Type:* {'Telegram' if notify_type == 'T' else 'Email'}\n'
+            reply_text = f'* Add New Alert & Notification *\n\n*Exchange Type:* CEX\n*Name:* {name}\n*Symbol:* {symbol}\n*Exchange:* {default_platform[chain]}\n*Monitored Item:* {default_condition[condition]}\n*Limited Value:* {value}\n*Notification Type:* {'Telegram' if notify_type == 'T' else 'Email'}\n'
         await message.edit_text(
             text= escape_special_characters(reply_text),
             reply_markup=reply_markup, 
