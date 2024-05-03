@@ -357,8 +357,9 @@ async def notification_edit_calling_handler(update: Update, context: ContextType
         name = user_status[3]
         method = commands[4]
         notify_id = commands[5]
-        user = update_status(id=chat_id, status=f"N_E_{role}_{name}_{method}_{notify_id}_{message.message_id}")
+        
         if name == 'C':
+            user = update_status(id=chat_id, status=f"N_E_{role}_{name}_{method}_{notify_id}_{message.message_id}")
             keyboard = []
             keyboard.append([
                 InlineKeyboardButton("More", callback_data=f'N_E_{role}_C_{method}_M_{int(notify_id)}'), 
@@ -373,6 +374,7 @@ async def notification_edit_calling_handler(update: Update, context: ContextType
                 disable_web_page_preview=True
             )
         elif name == 'V':
+            user = update_status(id=chat_id, status=f"N_E_{role}_{name}_{method}_{notify_id}_{message.message_id}")
             keyboard = []
             keyboard.append([InlineKeyboardButton("No", callback_data=f'N_E_{role}_C_{int(notify_id)}'), InlineKeyboardButton("Yes", callback_data=f'N_E_{role}_V_{method}_Y_{int(notify_id)}')])
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -385,6 +387,7 @@ async def notification_edit_calling_handler(update: Update, context: ContextType
             )
         elif name == 'D':
             notify = delete_notification(notify_id=int(notify_id))
+            user = update_status(id=chat_id, status=f"Notification")
             keyboard = []
             keyboard.append([InlineKeyboardButton("🔙 Back to the notification list", callback_data=f'settings_notify')])
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -402,9 +405,9 @@ async def notification_edit_calling_handler(update: Update, context: ContextType
         value = commands[4]
         check = commands[5]
         notify_id = commands[6]
-        user = update_status(id=chat_id, status=f"N_E_{role}_{condition}_{value}_{check}_{notify_id}_{message.message_id}")
 
         if condition == 'C':
+            user = update_status(id=chat_id, status=f"N_E_{role}_{condition}_{value}_{check}_{notify_id}_{message.message_id}")
             keyboard = []
             keyboard.append([InlineKeyboardButton("No", callback_data=f'N_E_{role}_C_{int(notify_id)}'), InlineKeyboardButton("Yes", callback_data=f'N_E_{role}_C_{value}_{check}_Y_{int(notify_id)}')])
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -417,6 +420,7 @@ async def notification_edit_calling_handler(update: Update, context: ContextType
             )
         elif condition == 'V':
             notify = change_value(notify_id=int(notify_id), value=float(value))
+            user = update_status(id=chat_id, status=f"notification")
             keyboard = []
             keyboard.append([InlineKeyboardButton("🔙 Back to the notification list", callback_data=f'settings_notify')])
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -434,10 +438,10 @@ async def notification_edit_calling_handler(update: Update, context: ContextType
         value2 = commands[5]
         check = commands[6]
         notify_id = commands[7]
-        user = update_status(id=chat_id, status=f"N_E_{role}_{condition}_{value}_{value2}_{check}_{notify_id}_{message.message_id}")
 
         if condition == 'C':
             notify = change_condition(notify_id=int(notify_id), condition=value, con_type= value2)
+            user = update_status(id=chat_id, status=f"notification")
             keyboard = []
             keyboard.append([InlineKeyboardButton("🔙 Back to the notification list", callback_data=f'settings_notify')])
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -464,16 +468,29 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
 
     # 1st Step: Enter Symbol
     if len(commands) == 2:
-        user = update_status(id=chat_id, status=f"N_A_{message.message_id}")
-        keyboard = []
-        keyboard.append([InlineKeyboardButton("🔙 Back", callback_data='settings_notify')])
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await message.edit_text(
-            "Enter the cryptocurrency symbol you want to set up notifications for",
-            reply_markup=reply_markup, 
-            parse_mode=ParseMode.MARKDOWN_V2,
-            disable_web_page_preview=True
-        )
+        if commands[1] == 'AD':
+            user = update_status(id=chat_id, status=f"N_AD")
+            keyboard = []
+            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data='settings_notify')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            reply_text = "⚠ You can no longer set notifications. If you wish to set more, please upgrade your plan to premium."
+            await message.edit_text(
+                text=escape_special_characters(reply_text),
+                reply_markup=reply_markup, 
+                parse_mode=ParseMode.MARKDOWN_V2,
+                disable_web_page_preview=True
+            )
+        elif commands[1] == 'A':
+            user = update_status(id=chat_id, status=f"N_A_{message.message_id}")
+            keyboard = []
+            keyboard.append([InlineKeyboardButton("🔙 Back", callback_data='settings_notify')])
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await message.edit_text(
+                "Enter the cryptocurrency symbol you want to set up notifications for",
+                reply_markup=reply_markup, 
+                parse_mode=ParseMode.MARKDOWN_V2,
+                disable_web_page_preview=True
+            )
     elif len(commands) == 3:
         symbol = commands[2]
         keyboard = []
@@ -707,6 +724,7 @@ async def notification_add_calling_handler(update: Update, context: ContextTypes
         notify_type = user_status[10]
         user = create_notification(chat_id=chat_id, crypto_type=role, name=name, symbol=symbol, chain=chain, platform=platform, condition=condition, con_type=con_type, value=value, notify_method=notify_type)
         if user:
+            user = update_status(id=chat_id, status=f"Notifcation")
             keyboard = []
             keyboard.append([InlineKeyboardButton("🔙 Back to the notification list", callback_data=f'settings_notify')])
             reply_markup = InlineKeyboardMarkup(keyboard)

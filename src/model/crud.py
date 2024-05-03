@@ -121,6 +121,12 @@ def count_user():
         return False
     return user
 
+def get_users_invoice_enable():
+    user = db.query(User).filter(User.invoice != None).all()
+    if not user:
+        return False
+    return user
+
 def create_notification(chat_id:int, crypto_type:str, name:str, symbol:str, chain:str, platform:str, condition:str, con_type:str, value:float, notify_method: str):
     db_noitfy = Notify(chat_id=chat_id, email=None, phone=None, crypto_type=crypto_type, name=name, symbol=symbol, chain=chain, platform=platform, condition=condition, con_type=con_type, value=value, notify_method=notify_method)
     try:

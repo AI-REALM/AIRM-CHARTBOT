@@ -1,6 +1,6 @@
 # Import required classes from the library
 import os, requests
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, JobQueue, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, JobQueue, MessageHandler, filters, Updater
 from dotenv import load_dotenv
 
 from src.main.stactic_commands import *
@@ -8,6 +8,7 @@ from src.main.handle_callback import *
 from src.main.user_settings import *
 from src.main.main_commands import *
 from src.main.notification import send_message
+from src.payment.premium import checking_and_update_invoice
 
 import schedule
 import time, asyncio
@@ -43,7 +44,7 @@ response = requests.post(API_URL, json={"commands": commands})
 def main() -> None:
     global application
     application = Application.builder().token(TOKEN).build()
-    
+
     # Existing start handler
     start_handler = CommandHandler('start', bot_start)
     application.add_handler(start_handler)
@@ -112,6 +113,9 @@ def main() -> None:
 
     job_queue = application.job_queue
     job_queue.run_repeating(callback=send_message, interval=300, first=0)  # 600 seconds = 10 minutes
+
+    job_queue_invoice = application.job_queue
+    job_queue_invoice.run_repeating(callback=checking_and_update_invoice, interval=360, first=0)
     
     application.run_polling()
 

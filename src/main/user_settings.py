@@ -491,14 +491,17 @@ async def update_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         waiting_payment = 0
         if user.invoice:
             payment_list = get_status_invoice_id(invoice_id=user.invoice)
-            if price[commands[2]] == payment_list[0]['price_amount']:
-                for i in payment_list['data']:
-                    if i['payment_status'] == "finished":
-                        new_flag = True
-                        user = update_premium(id=chat_id, price=i["price_amount"])
-                        break
-                    elif i['payment_status'] == "waiting":
-                        waiting_payment = i["payment_id"]
+            if payment_list:
+                if price[commands[2]] == payment_list[0]['price_amount']:
+                    for i in payment_list:
+                        if i['payment_status'] == "finished":
+                            new_flag = True
+                            user = update_premium(id=chat_id, price=i["price_amount"])
+                            break
+                        elif i['payment_status'] == "waiting":
+                            waiting_payment = i["payment_id"]
+                else:
+                    new_flag = True
             else:
                 new_flag = True
         else:
@@ -583,7 +586,7 @@ async def notification_dashboard(update: Update, context: ContextTypes.DEFAULT_T
     user = get_user_by_id(chat_id)
     if not user:
         user = create_user(chat_id)
-    user = update_status(id=chat_id, status="DX")
+    # user = update_status(id=chat_id, status="DX")
     keyboard = []
     if notifies:
         for i in range(0, len(notifies), 2):
@@ -601,9 +604,10 @@ async def notification_dashboard(update: Update, context: ContextTypes.DEFAULT_T
                 keyboard.append([InlineKeyboardButton(title1, callback_data=call_back1), InlineKeyboardButton(title2, callback_data=call_back2)])
             except:
                 keyboard.append([InlineKeyboardButton(title1, callback_data=call_back1)])
-    
-    keyboard.append([InlineKeyboardButton("➕ Add new alert", callback_data='N_A'), InlineKeyboardButton("⬅ Back to Settings", callback_data='settings_back')])
-
+    if user.premium == False and len(notifies) >= 2:
+        keyboard.append([InlineKeyboardButton("➕ Add new alert", callback_data='N_AD'), InlineKeyboardButton("⬅ Back to Settings", callback_data='settings_back')])
+    else:
+        keyboard.append([InlineKeyboardButton("➕ Add new alert", callback_data='N_A'), InlineKeyboardButton("⬅ Back to Settings", callback_data='settings_back')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = 'Choose a notification from the list below:' if notifies else "You haven't set up any notifications!"
     await message.edit_text(

@@ -25,7 +25,8 @@ async def bot_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "📢 Engage in group discussions or enjoy private chats with me.\n\n"
         "🛠 Customize every detail, from time zones to exchanges, and even my interface!\n\n"
         "💰 Seize advertising prospects on this robust platform and elevate your reach!\n\n"
-        "🔍 Dive deep into comprehensive analysis tools for informed decision-making!", reply_markup=reply_markup
+        "🔍 Dive deep into comprehensive analysis tools for informed decision-making!\n\n"
+        "⏰ Stay ahead with customized crypto alerts!", reply_markup=reply_markup
     )
 
 
@@ -79,7 +80,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Valid intervals are: 5m, 1h, 6h, 1D.\n\n"
         
         "⚙️ Settings\n"
-        "Use /settings to change custom settings - display, style, interval, time zone and default-chain.\n\n"
+        "Use /settings to change custom settings - display, style, interval, time zone and default-chain. Get real-time crypto updates! Set alerts & notifications. Stay informed effortlessly!\n\n"
         
         "⚠️ Disclaimer\n"
         "Please refer to /disclaimer for our complete disclaimer."
